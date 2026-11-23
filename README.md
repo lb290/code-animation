@@ -5,7 +5,21 @@
 
 两个方向的产出：
 1. **线性影片**（AETHER，下方）——numpy 粒子 + HDR 光栅 + ffmpeg。
-2. **可游览场景**（天空之城 · 灯祭）——手写 WebGL2 的实时 3D 世界，浏览器里自由飞行。
+2. **可游览场景**（天空鲸城 · 天空之城）——手写 WebGL2 的实时 3D 世界，浏览器里自由飞行。
+
+## 在线体验（GitHub Pages）
+
+| 作品 | 直接打开 | 键盘 |
+|---|---|---|
+| **天空鲸城** CIELO | <https://lb290.github.io/code-animation/04-output/CIELO.html> | 空格 巡游 · 1–9 观景 · N 昼夜 · F 烟花 · H 帮助 |
+| **天空之城 · 灯祭** CELESTIA | <https://lb290.github.io/code-animation/04-output/CELESTIA.html> | 空格 巡游 · 1–7 观景 · T 时刻 · H 帮助 |
+| 首页（全部单场景入口） | <https://lb290.github.io/code-animation/> | — |
+
+都是**单个 HTML 文件**（内联全部 JS 与着色器，0.1–1.4 MB），下载后断网也能双击打开。
+成片与图集在 **[Releases](https://github.com/lb290/code-animation/releases)**：天空鲸城《天空巡礼》、AETHER 1080p。
+
+> 仓库只收**代码、笔记与单文件成品 HTML**（约 20 MB）。第三方参考仓库 `02-refs/`、渲染中间帧 `04-output/_*`、
+> 音视频工程缓存（`.anyaudio/`）、浏览器配置与本机备份都不入库，见 [.gitignore](.gitignore)。
 
 > **交接**：根目录 [HANDOFF.md](HANDOFF.md) 里有两座城市的开工检查单、硬约束、命令与遗留问题。
 > - 「天空之城 · 灯祭」（CELESTIA，夜景浮岛灯市）—— 建筑施工规格见 [03-notes/building-spec.md](03-notes/building-spec.md)
