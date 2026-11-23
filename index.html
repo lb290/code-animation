@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>代码动画 · code-animation</title>
+<meta name="description" content="用纯代码生成动画与可游览世界：手写 WebGL2 的幻想都市、numpy 粒子线性影片。没有素材、没有剪辑软件、没有 GPU。">
+<style>
+  :root{
+    --bg:#0b1020; --bg2:#111a33; --ink:#e8eefc; --dim:#93a4c7;
+    --line:rgba(140,170,230,.16); --gold:#e7c795; --cyan:#8fd3ff;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:
+      radial-gradient(1200px 700px at 18% -10%, #1b2b52 0%, transparent 60%),
+      radial-gradient(900px 600px at 100% 0%, #24304f 0%, transparent 55%),
+      linear-gradient(180deg, var(--bg), #070b16 70%);
+    color:var(--ink);
+    font:16px/1.75 "PingFang SC","Microsoft YaHei","Noto Sans SC",system-ui,-apple-system,"Segoe UI",sans-serif;
+    min-height:100vh; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:80px 28px 96px}
+  header{border-bottom:1px solid var(--line);padding-bottom:44px;margin-bottom:56px}
+  .kicker{font-size:12px;letter-spacing:.42em;color:var(--gold);text-transform:uppercase;margin-bottom:18px}
+  h1{font-size:clamp(38px,6vw,64px);line-height:1.08;margin:0 0 20px;font-weight:600;letter-spacing:-.01em}
+  h1 em{font-style:normal;color:var(--cyan)}
+  .lede{font-size:17px;color:var(--dim);max-width:62ch;margin:0}
+  .meta{margin-top:26px;display:flex;flex-wrap:wrap;gap:10px}
+  .tag{font-size:12px;color:var(--dim);border:1px solid var(--line);border-radius:999px;padding:4px 12px}
+  h2{font-size:13px;letter-spacing:.3em;color:var(--gold);font-weight:400;margin:0 0 22px}
+  .grid{display:grid;gap:20px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));margin-bottom:72px}
+  .card{
+    display:flex;flex-direction:column;gap:0;border:1px solid var(--line);border-radius:16px;
+    padding:28px 26px;text-decoration:none;color:inherit;
+    background:linear-gradient(160deg,rgba(255,255,255,.045),rgba(255,255,255,.012));
+    transition:transform .25s ease,border-color .25s ease,background .25s ease;
+  }
+  .card:hover{transform:translateY(-3px);border-color:rgba(231,199,149,.5);background:linear-gradient(160deg,rgba(231,199,149,.09),rgba(255,255,255,.02))}
+  .card .no{font-size:12px;letter-spacing:.28em;color:var(--dim);margin-bottom:12px}
+  .card h3{margin:0 0 10px;font-size:22px;font-weight:600}
+  .card .en{font-size:12px;letter-spacing:.22em;color:var(--gold);margin-bottom:14px}
+  .card p{margin:0 0 20px;color:var(--dim);font-size:14.5px}
+  .card .go{margin-top:auto;font-size:13px;color:var(--cyan);letter-spacing:.06em}
+  .card .go::after{content:" →"}
+  .keys{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:12.5px;color:#7f91b5;margin:-6px 0 18px}
+  .keys b{display:inline-block;min-width:16px;padding:1px 6px;margin-right:5px;border:1px solid var(--line);border-radius:5px;color:var(--ink);font-weight:500;font-size:11.5px}
+  .levels{display:flex;flex-wrap:wrap;gap:9px}
+  .levels a{font-size:13px;color:var(--ink);text-decoration:none;border:1px solid var(--line);border-radius:8px;padding:7px 13px;transition:.2s}
+  .levels a:hover{border-color:rgba(231,199,149,.55);color:var(--gold)}
+  footer{border-top:1px solid var(--line);padding-top:28px;display:flex;flex-wrap:wrap;gap:18px 28px;color:var(--dim);font-size:13.5px}
+  footer a{color:var(--ink);text-decoration:none;border-bottom:1px solid rgba(140,170,230,.3)}
+  footer a:hover{color:var(--gold);border-color:rgba(231,199,149,.6)}
+  .hintline{margin:14px 0 0;font-size:13px;color:#6d7d9e}
+  @media (max-width:600px){ .wrap{padding:52px 20px 72px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="kicker">Code · Animation</div>
+    <h1>用纯代码，<em>长出</em>会动的世界</h1>
+    <p class="lede">两座天空城市、一部粒子影片。画面来自 numpy 数组运算与手写 WebGL2 着色器，音频来自加法合成与 WebAudio，帧直接灌进 ffmpeg —— 没有素材库、没有剪辑软件、没有 GPU。</p>
+    <div class="meta">
+      <span class="tag">WebGL2 · 零依赖</span>
+      <span class="tag">单个 HTML 离线可玩</span>
+      <span class="tag">numpy 粒子 + HDR 光栅</span>
+      <span class="tag">程序化配乐</span>
+    </div>
+  </header>
+
+  <h2>可游览场景</h2>
+  <div class="grid">
+    <a class="card" href="04-output/CIELO.html">
+      <div class="no">01</div>
+      <h3>天空鲸城</h3>
+      <div class="en">CIELO</div>
+      <p>780 m 浮空巨鲸驮着一座城。日间的欧陆都市：宫殿、玻璃宫、大教堂、高架车站与歌剧院都能飞进去看，有昼夜三档与烟花。</p>
+      <div class="keys"><span><b>空格</b>巡游</span><span><b>1–9</b>观景</span><span><b>N</b>昼夜</span><span><b>F</b>烟花</span><span><b>H</b>帮助</span></div>
+      <div class="go">进入 CIELO</div>
+    </a>
+
+    <a class="card" href="04-output/CELESTIA.html">
+      <div class="no">02</div>
+      <h3>天空之城 · 灯祭</h3>
+      <div class="en">CELESTIA</div>
+      <p>夜景浮岛上的灯市。环街町屋、云海、鱼灯与水面反光，同一个引擎的第一次落地。</p>
+      <div class="keys"><span><b>空格</b>巡游</span><span><b>1–7</b>观景</span><span><b>T</b>时刻</span><span><b>H</b>帮助</span></div>
+      <div class="go">进入 CELESTIA</div>
+    </a>
+
+    <a class="card" href="https://github.com/lb290/code-animation/releases">
+      <div class="no">03</div>
+      <h3>AETHER</h3>
+      <div class="en">线性影片 · 1080p</div>
+      <p>numpy 粒子泼溅 + HDR 光栅 + 电影级后处理链，24 s 成片，配乐由加法合成与 FFT 卷积混响写成。成片在 Releases。</p>
+      <div class="go">去 Releases 看成片</div>
+    </a>
+  </div>
+
+  <h2>天空鲸城 · 单场景入口</h2>
+  <div class="levels">
+    <a href="04-output/CIELO.html">全景</a>
+    <a href="04-output/CIELO.cathedral.html">大教堂</a>
+    <a href="04-output/CIELO.opera.html">歌剧院</a>
+    <a href="04-output/CIELO.salon.html">宇宙音乐厅</a>
+    <a href="04-output/CIELO.rooms.html">宫殿套房</a>
+    <a href="04-output/CIELO.station.html">高架车站</a>
+    <a href="04-output/CIELO.train.html">银蓝列车</a>
+    <a href="04-output/CIELO.plaza.html">中央广场</a>
+    <a href="04-output/CIELO.orbital.html">玻璃星象台</a>
+    <a href="04-output/CIELO.lead.html">主教座堂</a>
+    <a href="04-output/CIELO.dev.html">开发版</a>
+    <a href="04-output/CELESTIA.dev.html">CELESTIA 开发版</a>
+  </div>
+  <p class="hintline">每个都是完整的单文件 HTML（0.1–1.4 MB，内联全部代码与着色器），下载下来断网也能打开。</p>
+
+  <footer>
+    <a href="https://github.com/lb290/code-animation">源码仓库</a>
+    <a href="03-notes/cielo-spec.md">CIELO 规格</a>
+    <a href="03-notes/building-spec.md">建筑施工规格</a>
+    <a href="https://github.com/lb290/code-animation/releases">成片与图集 · Releases</a>
+  </footer>
+
+</div>
+</body>
+</html>
