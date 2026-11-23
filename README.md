@@ -405,6 +405,31 @@ node tools/capture.mjs --url=... --mode=path --path=03-notes/cielo-r3-video-path
 
 细节见 [03-notes/cielo-production.md](03-notes/cielo-production.md)。
 
+## 第十轮（2026-11-24）：城市导览抄本 + 云上茶席
+
+**① 城市导览抄本** —— 城里每一处主要建筑、景点、场景现在都"读得到"：
+
+- `01-source/cielo/src/lore.js`：**31 条记载 / 9 个区域**（露台 · 长街广场 · 王宫 · 玻璃宫 · 大教堂 · 车站银轨 · 歌剧院 · 鲸与天空 · 云上茶席）。每条 = 标题 / 英文名 / 一句引言 / 两段正文 / "去这里（观景点 n）"。写的都是场景里真实存在的细节：宇宙收藏墙的七件藏品、宴会厅慢半拍的镜墙、写生角那幅没画完的鲸、还温着的怀表。
+- `01-source/cielo/src/guide.js`：**抵达检测 → 卡片 → 抄本 → 进度**。为 30 处地标划"抵达区域"，第一次飞进去，左下角滑出卡片（区域 / 编号 / 标题 / 引言 / `G 阅读记载`），同时那一页在抄本里"显影"；卡片之间 6.5 s 节流，避免落地就连弹三张。
+- **按 `G`** 打开抄本：左栏按区域分组的目录（已抵达 / 未抵达 / 新），右栏正文 + "去这里"。**未抵达的页面不显示正文**（只留怎么去），`U` 可预读全部。进度与预读开关存在 localStorage；夜间那一页在第一次按 `N` 入夜时解锁。
+- 打开抄本时 HUD 淡出、指针解锁、键盘交给抄本（`↑↓` / `Z X` 翻页，`G` `Esc` 收起）；1024×700 窄屏可读。
+- 新增体检 `tools/lore-check.mjs`（id 唯一 / 区域存在 / zone 观景点越界 / 正文长度 / 区域分布）。
+
+**② 云上茶席（The Tea Pavilion）** —— 城西南高空的一座浮空小岛：开放式茶亭（八根金柱 + 玻璃穹顶 + 绸幔）、黑白棋盘露台、摆着黄铜茶壶与茶杯的长桌、点心架、留声机、散落的扑克牌；一侧是映着天空的镜池，另一侧是三龛收藏柜，入口站着一只捧着怀表的白兔先生。它悬在城西南的高空：从城西的观景点能看到一点轮廓，更多时候要专门飞过去（观景点 78–80，或直接沿「大教堂 → 西南天空」飞）。
+
+![云上茶席 · 外景](https://github.com/lb290/code-animation/releases/download/v1.0/r10-tea-pavilion.png)
+
+![城市导览抄本](https://github.com/lb290/code-animation/releases/download/v1.0/r10-almanac.png)
+
+（夜景：[云上茶席之夜](https://github.com/lb290/code-animation/releases/download/v1.0/r10-tea-night.png) · 抵达卡片：[到达一处地标时](https://github.com/lb290/code-animation/releases/download/v1.0/r10-arrival-card.png)）
+
+~~~powershell
+cd 01-source/cielo
+node build.mjs                        # → 04-output/CIELO.html
+node tools/checkall.mjs               # 28 个体检
+~~~
+
+观景点新增 78「云上茶席」/ 79「茶席长桌」/ 80「镜池仰观」（`Z X` 翻到最后一组）。
 ## 方法论（来自 03-notes/techniques.md）
 
 1. **shots as data**：一个时间轴统治画面/配乐/字幕，改一处时间全片跟着走
