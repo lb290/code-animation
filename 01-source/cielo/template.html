@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<link rel="icon" href="data:,">
+<title>天空鲸城 · CIELO</title>
+<style>
+  :root{
+    --ink:#12224a; --ink2:#2b3f72; --paper:#f7fbff; --gold:#e0aa4e; --gold2:#f6d79a;
+    --blue:#4f86d8; --blue2:#a7c9f0; --pink:#f3a0bc;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;height:100%;overflow:hidden;background:#9fd0ee;color:var(--ink);
+    font-family:"Songti SC","Noto Serif SC","Source Han Serif SC",Georgia,serif;
+    -webkit-font-smoothing:antialiased;user-select:none;cursor:default}
+  #c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+  .vignette{position:fixed;inset:0;pointer-events:none;
+    background:radial-gradient(ellipse at 50% 42%, rgba(255,255,255,0) 52%, rgba(30,60,110,.20) 100%)}
+  /* ---------- loading / title ---------- */
+  #loading{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    background:
+      radial-gradient(ellipse at 50% 20%, #dff1fd 0%, #a8d4f2 42%, #6fa8dc 78%, #4d86c4 100%);
+    transition:opacity 1.3s ease, visibility 1.3s;z-index:20;overflow:hidden}
+  #loading:before{content:"";position:absolute;inset:-20%;
+    background:
+      radial-gradient(closest-side at 22% 30%, rgba(255,255,255,.95), rgba(255,255,255,0) 70%) 0 0/46% 40% no-repeat,
+      radial-gradient(closest-side at 74% 22%, rgba(255,255,255,.9), rgba(255,255,255,0) 70%) 0 0/40% 34% no-repeat,
+      radial-gradient(closest-side at 62% 66%, rgba(255,255,255,.75), rgba(255,255,255,0) 70%) 0 0/52% 46% no-repeat,
+      radial-gradient(closest-side at 12% 74%, rgba(255,255,255,.6), rgba(255,255,255,0) 70%) 0 0/38% 32% no-repeat;
+    filter:blur(6px);opacity:.85;animation:drift 26s ease-in-out infinite alternate}
+  @keyframes drift{from{transform:translate3d(-2%,0,0) scale(1)}to{transform:translate3d(3%,-1.5%,0) scale(1.05)}}
+  #loading.hidden{opacity:0;visibility:hidden}
+  #loading .inner{position:relative;text-align:center;padding:0 6vw}
+  #loading .crest{width:52px;height:52px;margin:0 auto 26px;position:relative;opacity:.95}
+  #loading .crest:before,#loading .crest:after{content:"";position:absolute;inset:0;border:1.5px solid rgba(255,255,255,.9);
+    transform:rotate(45deg)}
+  #loading .crest:after{inset:11px;border-color:rgba(224,170,78,.95)}
+  #loading h1{font-size:clamp(34px,5.4vw,72px);letter-spacing:.30em;margin:0 0 8px .30em;font-weight:400;
+    color:#fffdf6;text-shadow:0 2px 0 rgba(70,110,170,.35),0 0 40px rgba(255,255,255,.55),0 0 90px rgba(150,200,255,.45)}
+  #loading .sub{font-family:"Helvetica Neue",Arial,sans-serif;font-size:clamp(10px,1.05vw,12.5px);
+    letter-spacing:.46em;margin:10px 0 0 .46em;color:#e9f4ff;text-transform:uppercase;opacity:.92}
+  #loading .rule{width:min(360px,54vw);height:1px;margin:28px auto 24px;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.85),transparent)}
+  #loading .blurb{max-width:min(660px,84vw);margin:0 auto 34px;line-height:2.1;font-size:14px;color:#f2f8ff;
+    letter-spacing:.08em;text-shadow:0 1px 12px rgba(40,80,140,.45)}
+  #start{appearance:none;border:1px solid rgba(255,255,255,.8);border-radius:999px;
+    background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(226,240,255,.86));
+    color:#1e3a6a;font-family:inherit;font-size:15.5px;letter-spacing:.34em;padding:14px 44px 14px 48px;cursor:pointer;
+    box-shadow:0 8px 30px rgba(60,110,180,.28), inset 0 0 22px rgba(255,255,255,.8);
+    transition:all .32s ease}
+  #start:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 12px 40px rgba(60,110,180,.36), inset 0 0 22px #fff;
+    color:#122c58}
+  #start:disabled{opacity:.55;cursor:default}
+  #loading .keys{margin-top:30px;font-family:"Helvetica Neue",Arial,sans-serif;font-size:11px;letter-spacing:.16em;
+    color:#eef7ff;line-height:2.1;text-align:center;opacity:.92;text-shadow:0 1px 10px rgba(40,80,140,.5)}
+  #loading .keys b{color:#fff8e2;font-weight:600}
+  /* ---------- hud ---------- */
+  #hud{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity 1.1s ease;z-index:10}
+  #hud.show{opacity:1}
+  #hud.photo .chrome{opacity:0}
+  #hud .chrome{transition:opacity .4s}
+  .plate{position:absolute;top:26px;left:32px;color:#fff;text-shadow:0 2px 14px rgba(20,50,100,.55)}
+  .plate .cn{display:block;font-size:18px;letter-spacing:.32em;margin-bottom:6px}
+  .plate .en{font-family:"Helvetica Neue",Arial,sans-serif;font-size:9.5px;letter-spacing:.36em;opacity:.85}
+  #fps{position:absolute;top:28px;right:32px;font-family:ui-monospace,Menlo,monospace;font-size:10.5px;
+    letter-spacing:.08em;color:rgba(255,255,255,.85);text-align:right;line-height:1.75;white-space:pre-line;
+    text-shadow:0 1px 10px rgba(20,50,100,.6)}
+  .hint{position:absolute;bottom:28px;left:50%;transform:translateX(-50%);display:flex;gap:20px;
+    font-family:"Helvetica Neue",Arial,sans-serif;font-size:10.5px;letter-spacing:.16em;color:rgba(255,255,255,.92);
+    white-space:nowrap;transition:opacity .9s;text-shadow:0 2px 14px rgba(20,50,100,.6)}
+  .hint kbd{display:inline-block;min-width:18px;padding:1px 6px;margin-right:6px;border:1px solid rgba(255,255,255,.55);
+    border-radius:3px;font-family:inherit;font-size:9.5px;text-align:center;background:rgba(255,255,255,.14)}
+  .hint.fade{opacity:.3}
+  #tod{position:absolute;left:32px;bottom:30px;font-family:"Helvetica Neue",Arial,sans-serif;
+    font-size:11px;letter-spacing:.34em;color:rgba(255,255,255,.88);text-shadow:0 2px 14px rgba(20,50,100,.65);
+    display:flex;align-items:center;gap:9px}
+  #tod:before{content:"";width:5px;height:5px;border-radius:50%;background:var(--gold2);
+    box-shadow:0 0 10px rgba(246,215,154,.9)}
+  #toast{position:absolute;left:50%;top:calc(50% + 170px);transform:translate(-50%,10px);opacity:0;
+    font-size:13.5px;letter-spacing:.24em;color:#fff;text-shadow:0 2px 20px rgba(20,50,100,.8);
+    transition:opacity .45s, transform .45s;white-space:nowrap}
+  #toast.show{opacity:1;transform:translate(-50%,0)}
+  #help{position:absolute;right:32px;bottom:28px;width:290px;padding:20px 22px;border-radius:14px;
+    border:1px solid rgba(255,255,255,.55);background:linear-gradient(180deg,rgba(255,255,255,.86),rgba(233,243,255,.82));
+    backdrop-filter:blur(10px);font-size:12.5px;line-height:2.0;color:#2a4472;opacity:0;transform:translateY(8px);
+    transition:all .35s;pointer-events:none;box-shadow:0 18px 50px rgba(40,90,160,.22)}
+  #help.show{opacity:1;transform:translateY(0)}
+  #help h3{margin:0 0 10px;font-size:12px;letter-spacing:.3em;color:#1d3a6a;font-weight:400}
+  #help div{display:flex;justify-content:space-between;gap:14px}
+  #help span:first-child{color:#5c77a8}
+  #help .v{color:#1f3c6c}
+  #letterbox{position:fixed;inset:0;pointer-events:none;z-index:9}
+  #letterbox:before,#letterbox:after{content:"";position:absolute;left:0;right:0;height:0;background:#06203c;
+    transition:height 1s cubic-bezier(.4,0,.2,1)}
+  #letterbox:before{top:0}#letterbox:after{bottom:0}
+  #letterbox.on:before,#letterbox.on:after{height:7vh}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="vignette"></div>
+<div id="letterbox"></div>
+
+<div id="loading">
+  <div class="inner">
+    <div class="crest"></div>
+    <h1>天空鲸城</h1>
+    <div class="sub">CIELO — The Whale Above the Glass City</div>
+    <div class="rule"></div>
+    <p class="blurb">云上的白城，大理石露台朝着一座玻璃穹顶的宫殿。<br>巨鲸背着城堡缓缓游过塔尖，浅蓝色的列车在银钢高架环线上滑行 ——<br>它已绕到宫殿背后，不再挡住露台的风景。锦鲤在空气里游弋 —— 这里是整座幻想城市。<br><span style="color:#ffe9b8">宫殿一层的金色门厅、后殿的私人套间，玻璃宫的蓝色大厅，大教堂、车站，<br>还有新落成的歌剧院，都可以飞进去游览。<br>按 N 等到夜幕降临：万家灯火亮起，鲸背城浮在星空里；再按 F 放一朵烟花。</span></p>
+    <button id="start" disabled>正在点亮城市…</button>
+    <div class="keys">
+      <b>WASD</b> 飞行 &nbsp;·&nbsp; <b>鼠标</b> 环视 &nbsp;·&nbsp; <b>Q / E</b> 升降 &nbsp;·&nbsp; <b>Shift</b> 加速<br>
+      <b>空格</b> 自动巡游 &nbsp;·&nbsp; <b>1–9 / 0</b> 观景点 &nbsp;·&nbsp; <b>Z / X</b> 切换 &nbsp;·&nbsp; <b>P</b> 摄影<br>
+      <b>N</b> 昼夜切换（白昼 / 黄昏 / 夜晚） &nbsp;·&nbsp; <b>F</b> 放烟花
+    </div>
+  </div>
+</div>
+
+<div id="hud">
+  <div class="chrome plate"><span class="cn">天空鲸城</span><span class="en">CIELO · THE WHALE ABOVE THE GLASS CITY</span></div>
+  <div class="chrome" id="fps"></div>
+  <div class="chrome hint" id="hint">
+    <span><kbd>W A S D</kbd>飞行</span><span><kbd>鼠标</kbd>环视</span><span><kbd>Q E</kbd>升降</span>
+    <span><kbd>空格</kbd>巡游</span><span><kbd>1-9</kbd>观景</span><span><kbd>Z X</kbd>切换</span><span><kbd>N</kbd>昼夜</span><span><kbd>F</kbd>烟花</span><span><kbd>H</kbd>帮助</span>
+  </div>
+  <div class="chrome" id="tod">白昼</div>
+  <div id="toast"></div>
+  <div id="help">
+    <h3>操 作</h3>
+    <div><span>W A S D</span><span class="v">飞行</span></div>
+    <div><span>鼠标</span><span class="v">环视（点击画面锁定）</span></div>
+    <div><span>Q / E</span><span class="v">下降 / 上升</span></div>
+    <div><span>Shift</span><span class="v">加速飞行</span></div>
+    <div><span>空格</span><span class="v">自动巡游 开 / 关</span></div>
+    <div><span>1 – 9 / 0</span><span class="v">跳转观景点</span></div>
+    <div><span>Z / X</span><span class="v">上一个 / 下一个观景点</span></div>
+    <div><span>N</span><span class="v">昼夜切换（白昼 / 黄昏 / 夜晚）</span></div>
+    <div><span>F</span><span class="v">放一朵烟花</span></div>
+    <div><span>P</span><span class="v">摄影模式（隐藏界面）</span></div>
+    <div><span>R</span><span class="v">回到露台</span></div>
+    <div><span>H</span><span class="v">收起此面板</span></div>
+  </div>
+</div>
+
+<script>/*__SCRIPT__*/</script>
+</body>
+</html>

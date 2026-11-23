@@ -1,0 +1,6 @@
+{
+  "name": "cielo",
+  "private": true,
+  "type": "module",
+  "description": "CIELO — sky-whale city. src/*.js are ES modules; build.mjs bundles them with esbuild."
+}
