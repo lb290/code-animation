@@ -425,3 +425,21 @@ node tools/capture.mjs --url=... --mode=path --path=03-notes/cielo-r3-video-path
 
 02-refs/ 下各仓库版权归原作者，仅作学习参考，许可见各自 LICENSE。
 本目录下 01-source / 03-notes / 04-output 为本次生成内容。
+
+## 发布（本机流程）
+
+远程走 **SSH**（`git@github.com:lb290/code-animation`），不走 HTTPS —— 本机到 `github.com:443` 会被 SNI 级阻断，
+HTTPS 的 push 会卡在 “Failed to connect to github.com port 443”；SSH 通道实测稳定（22 / 443 都通）。
+本机已生成 `~/.ssh/id_ed25519` 并作为本仓库的 deploy key（读写权限）。
+
+```powershell
+git add -A
+git commit -m "说明这次改了什么"
+git push origin main          # 走 SSH，秒级
+```
+
+- **Pages**：`main` 分支根目录 → <https://lb290.github.io/code-animation/>，推上去自动重建（`.nojekyll` 已加）。
+- **Releases**：视频/图集用 `gh release upload v1.0 文件 --clobber`，别往 git 历史里塞视频。
+- **不入库**：见 `.gitignore` —— `02-refs/`（第三方 clone）、`04-output` 的静帧与视频、`.anyaudio/`、`.chrome-profile/`、`_backup/`。
+- **GitHub 网页/gh 又连不上**：跑 `F:\AI\dsh\tools\github-direct\apply-github-hosts.bat` 重刷可用 IP；
+  `git push` 不受影响（走 SSH），受影响的只有浏览器、`gh` 与 HTTPS 下载。
