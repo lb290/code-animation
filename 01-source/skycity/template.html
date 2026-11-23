@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<link rel="icon" href="data:,">
+<title>天空之城 · 灯祭 — CELESTIA</title>
+<style>
+  :root{
+    --gold:#e8c07a; --gold-dim:#a9854a; --ink:#0a0d16; --paper:#f3e6cd;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;height:100%;overflow:hidden;background:#05070d;color:var(--paper);
+    font-family:"Songti SC","Noto Serif SC","Source Han Serif SC",Georgia,"Times New Roman",serif;
+    -webkit-font-smoothing:antialiased;user-select:none;cursor:default}
+  #c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+  .vignette{position:fixed;inset:0;pointer-events:none;
+    background:radial-gradient(ellipse at 50% 45%, rgba(0,0,0,0) 45%, rgba(3,5,10,.55) 100%)}
+  /* ---------- loading / title ---------- */
+  #loading{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    background:radial-gradient(ellipse at 50% 55%, #101828 0%, #070a12 55%, #04060a 100%);
+    transition:opacity 1.4s ease, visibility 1.4s;z-index:20}
+  #loading.hidden{opacity:0;visibility:hidden}
+  #loading .crest{width:46px;height:46px;border:1px solid var(--gold-dim);transform:rotate(45deg);
+    margin-bottom:34px;position:relative;opacity:.85}
+  #loading .crest:after{content:"";position:absolute;inset:7px;border:1px solid rgba(232,192,122,.5)}
+  #loading h1{font-size:clamp(30px,4.6vw,62px);letter-spacing:.42em;margin:0 0 4px .42em;font-weight:400;
+    color:#f6e9cf;text-shadow:0 0 34px rgba(255,176,86,.35),0 0 90px rgba(255,140,60,.16)}
+  #loading .sub{font-size:clamp(10px,1.05vw,13px);letter-spacing:.52em;margin:12px 0 0 .52em;color:#b99b6d;
+    text-transform:uppercase;font-family:"Helvetica Neue",Arial,sans-serif}
+  #loading .rule{width:min(320px,52vw);height:1px;margin:30px 0 26px;
+    background:linear-gradient(90deg,transparent,var(--gold-dim),transparent)}
+  #loading .blurb{max-width:min(620px,82vw);text-align:center;line-height:2.05;font-size:14px;color:#c9bda6;
+    letter-spacing:.06em;margin:0 0 34px}
+  #start{appearance:none;border:1px solid rgba(232,192,122,.55);background:linear-gradient(180deg,rgba(60,44,22,.55),rgba(24,18,12,.75));
+    color:#f3dcb2;font-family:inherit;font-size:16px;letter-spacing:.34em;padding:14px 42px 14px 46px;cursor:pointer;
+    transition:all .35s ease;position:relative}
+  #start:hover{border-color:var(--gold);color:#fff3d8;box-shadow:0 0 34px rgba(255,180,90,.28),inset 0 0 24px rgba(255,170,80,.12)}
+  #start:disabled{opacity:.4;cursor:default;box-shadow:none}
+  #loading .keys{margin-top:34px;font-size:11.5px;letter-spacing:.16em;color:#7d7466;line-height:2.1;text-align:center;
+    font-family:"Helvetica Neue",Arial,sans-serif}
+  #loading .keys b{color:#c2a878;font-weight:500}
+  /* ---------- hud ---------- */
+  #hud{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity 1.2s ease;z-index:10}
+  #hud.show{opacity:1}
+  #hud.photo .chrome{opacity:0}
+  #hud .chrome{transition:opacity .4s}
+  .plate{position:absolute;top:26px;left:30px;font-size:12px;letter-spacing:.3em;color:#d9c49b}
+  .plate .cn{font-size:17px;letter-spacing:.34em;color:#f0dfbe;display:block;margin-bottom:5px}
+  .plate .en{font-family:"Helvetica Neue",Arial,sans-serif;font-size:9.5px;letter-spacing:.34em;color:#8d7d63}
+  #fps{position:absolute;top:28px;right:30px;font-family:ui-monospace,Menlo,monospace;font-size:10.5px;
+    letter-spacing:.1em;color:#7f8a9c;text-align:right;line-height:1.7;white-space:pre-line}
+  .hint{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);display:flex;gap:22px;
+    font-family:"Helvetica Neue",Arial,sans-serif;font-size:10.5px;letter-spacing:.18em;color:#8e8878;
+    white-space:nowrap;transition:opacity .8s}
+  .hint kbd{display:inline-block;min-width:18px;padding:1px 5px;margin-right:6px;border:1px solid rgba(200,180,140,.35);
+    border-radius:2px;color:#d6c39a;font-family:inherit;font-size:9.5px;text-align:center}
+  .hint.fade{opacity:.22}
+  #toast{position:absolute;left:50%;top:calc(50% + 150px);transform:translate(-50%,10px);opacity:0;
+    font-size:13px;letter-spacing:.22em;color:#f0d9ae;text-shadow:0 2px 18px rgba(0,0,0,.9);
+    transition:opacity .5s, transform .5s;white-space:nowrap}
+  #toast.show{opacity:1;transform:translate(-50%,0)}
+  #help{position:absolute;right:30px;bottom:26px;width:286px;padding:20px 22px;border:1px solid rgba(200,170,120,.28);
+    background:linear-gradient(180deg,rgba(16,20,30,.88),rgba(9,11,18,.92));backdrop-filter:blur(6px);
+    font-size:12px;line-height:2.05;color:#cdbfa4;opacity:0;transform:translateY(8px);transition:all .35s;pointer-events:none}
+  #help.show{opacity:1;transform:translateY(0)}
+  #help h3{margin:0 0 10px;font-size:12px;letter-spacing:.3em;color:#e6cd9d;font-weight:400}
+  #help div{display:flex;justify-content:space-between;gap:14px}
+  #help span:first-child{color:#8f8570}
+  #help em{font-style:normal;color:#8f8570}
+  #help .k{color:#a99a7e;font-family:"Helvetica Neue",Arial,sans-serif;font-size:10.5px;letter-spacing:.12em}
+  #help .v{color:#e3d2b0}
+  #letterbox{position:fixed;inset:0;pointer-events:none;z-index:9}
+  #letterbox:before,#letterbox:after{content:"";position:absolute;left:0;right:0;height:0;background:#000;
+    transition:height 1s cubic-bezier(.4,0,.2,1)}
+  #letterbox:before{top:0}#letterbox:after{bottom:0}
+  #letterbox.on:before,#letterbox.on:after{height:7vh}
+  .hidden-ui{opacity:0!important}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="vignette"></div>
+<div id="letterbox"></div>
+
+<div id="loading">
+  <div class="crest"></div>
+  <h1>天空之城</h1>
+  <div class="sub">Lantern Festival Above the Clouds</div>
+  <div class="rule"></div>
+  <p class="blurb">云海之上，浮岛悬空。白金的城市在夜里点起千万盏灯，<br>巨大的鱼灯游过塔尖，天灯升起，瀑布落入虚空。</p>
+  <button id="start" disabled>正在点亮灯…</button>
+  <div class="keys">
+    <b>WASD</b> 飞行 &nbsp;·&nbsp; <b>鼠标</b> 环视 &nbsp;·&nbsp; <b>Q / E</b> 升降 &nbsp;·&nbsp; <b>Shift</b> 加速<br>
+    <b>空格</b> 自动巡游 &nbsp;·&nbsp; <b>1–7</b> 观景点 &nbsp;·&nbsp; <b>T</b> 时刻 &nbsp;·&nbsp; <b>H</b> 帮助
+  </div>
+</div>
+
+<div id="hud">
+  <div class="chrome plate"><span class="cn">天空之城 · 灯祭</span><span class="en">CELESTIA — LANTERN SKY</span></div>
+  <div class="chrome" id="fps"></div>
+  <div class="chrome hint" id="hint">
+    <span><kbd>W A S D</kbd>飞行</span><span><kbd>鼠标</kbd>环视</span><span><kbd>Q E</kbd>升降</span>
+    <span><kbd>空格</kbd>巡游</span><span><kbd>1-7</kbd>观景</span><span><kbd>H</kbd>帮助</span>
+  </div>
+  <div id="toast"></div>
+  <div id="help">
+    <h3>操 作</h3>
+    <div><span class="k">W A S D</span><span class="v">飞行</span></div>
+    <div><span class="k">鼠标</span><span class="v">环视（点击画面锁定）</span></div>
+    <div><span class="k">Q / E</span><span class="v">下降 / 上升</span></div>
+    <div><span class="k">Shift</span><span class="v">加速飞行</span></div>
+    <div><span class="k">空格</span><span class="v">自动巡游 开 / 关</span></div>
+    <div><span class="k">1 – 7</span><span class="v">跳转观景点</span></div>
+    <div><span class="k">T</span><span class="v">切换时刻</span></div>
+    <div><span class="k">P</span><span class="v">摄影模式（隐藏界面）</span></div>
+    <div><span class="k">M</span><span class="v">声音开 / 关</span></div>
+    <div><span class="k">H</span><span class="v">收起此面板</span></div>
+  </div>
+</div>
+
+<script>/*__SCRIPT__*/</script>
+</body>
+</html>

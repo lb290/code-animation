@@ -1,0 +1,6 @@
+[
+  { "url": "http://127.0.0.1:8099/CELESTIA.dev.html?view=2&noui=1", "out": "../../02-refs/shots/w1-top.png" },
+  { "url": "http://127.0.0.1:8099/CELESTIA.dev.html?view=0&noui=1", "out": "../../02-refs/shots/w2-hero.png" },
+  { "url": "http://127.0.0.1:8099/CELESTIA.dev.html?view=3&noui=1", "out": "../../02-refs/shots/w3-bridge.png" },
+  { "url": "http://127.0.0.1:8099/CELESTIA.dev.html?view=1&noui=1", "out": "../../02-refs/shots/w4-street.png" }
+]

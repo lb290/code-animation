@@ -1,0 +1,6 @@
+[
+  { "url": "http://127.0.0.1:8099/CELESTIA.html?view=4&noui=1", "out": "../../04-output/skycity/05-koi.png", "wait": 2800 },
+  { "url": "http://127.0.0.1:8099/CELESTIA.html?view=5&noui=1", "out": "../../04-output/skycity/06-underside.png", "wait": 2600 },
+  { "url": "http://127.0.0.1:8099/CELESTIA.html?view=6&noui=1", "out": "../../04-output/skycity/07-cloudsea.png", "wait": 2600 },
+  { "url": "http://127.0.0.1:8099/CELESTIA.html?view=7&noui=1", "out": "../../04-output/skycity/08-tower.png", "wait": 2600 }
+]

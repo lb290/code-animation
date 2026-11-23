@@ -1,0 +1,4 @@
+[
+  { "url": "http://127.0.0.1:8099/CELESTIA.html?view=1&noui=1", "out": "../../04-output/skycity/02-overlook.png", "wait": 3000 },
+  { "url": "http://127.0.0.1:8099/CELESTIA.html?view=3&noui=1", "out": "../../04-output/skycity/04-bridge.png", "wait": 2600 }
+]

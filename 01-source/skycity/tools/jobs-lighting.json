@@ -1,0 +1,6 @@
+[
+  { "url": "http://127.0.0.1:8099/CELESTIA.dev.html?view=2&noui=1&tune=uAmbMul:0,uCityMul:0,uPointMul:0,uSpecMul:0,uRim:0", "out": "../../02-refs/shots/t1-key.png" },
+  { "url": "http://127.0.0.1:8099/CELESTIA.dev.html?view=2&noui=1&tune=uKeyInt:0,uCityMul:0,uPointMul:0,uSpecMul:0,uRim:0", "out": "../../02-refs/shots/t2-amb.png" },
+  { "url": "http://127.0.0.1:8099/CELESTIA.dev.html?view=2&noui=1&tune=uKeyInt:0,uAmbMul:0,uPointMul:0,uSpecMul:0,uRim:0", "out": "../../02-refs/shots/t3-city.png" },
+  { "url": "http://127.0.0.1:8099/CELESTIA.dev.html?view=2&noui=1&tune=uKeyInt:0,uAmbMul:0,uCityMul:0,uSpecMul:0,uRim:0", "out": "../../02-refs/shots/t4-points.png" }
+]
