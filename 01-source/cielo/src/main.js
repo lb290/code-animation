@@ -12,6 +12,7 @@ import { Ambience } from './audio.js';
 import { DayNight } from './daynight.js';
 import { buildNightLights } from './night-lights.js';
 import { makeFireworks } from './fireworks.js';
+import { createGuide } from './guide.js';
 
 const canvas = document.getElementById('c');
 const gl = createGL(canvas);
@@ -263,6 +264,13 @@ function toast(msg, ms = 2400) {
   toastT = setTimeout(() => toastEl.classList.remove('show'), ms);
 }
 
+// ---------------------------------------------------------------- 导览抄本
+// 每处地标一个抵达区域：首次飞进去滑出一张卡片，并把那一页"显影"进抄本（G 打开）。
+const guide = createGuide({
+  cam,
+  toast: (msg, ms) => toast(msg, ms),
+});
+
 let photoMode = false;
 function setPhoto(on) {
   photoMode = on;
@@ -291,6 +299,16 @@ canvas.addEventListener('wheel', (e) => {
 }, { passive: false });
 
 window.addEventListener('keydown', (e) => {
+  // ---- 导览抄本优先：打开时吞掉按键，相机不再跟着动
+  if (guide.isOpen()) {
+    if (e.code === 'KeyG' || e.code === 'Escape') { e.preventDefault(); guide.close(); return; }
+    if (e.code === 'ArrowDown' || e.code === 'KeyX' || e.code === 'ArrowRight') { e.preventDefault(); guide.nav(1); return; }
+    if (e.code === 'ArrowUp' || e.code === 'KeyZ' || e.code === 'ArrowLeft') { e.preventDefault(); guide.nav(-1); return; }
+    if (e.code === 'KeyU') { e.preventDefault(); guide.toggleSpoiler(); return; }
+    e.preventDefault();
+    return;
+  }
+  if (e.code === 'KeyG') { e.preventDefault(); guide.toggle(); return; }
   cam.onKey(e.code, true);
   if (e.code === 'Space') {
     e.preventDefault();
@@ -316,6 +334,7 @@ window.addEventListener('keydown', (e) => {
   } else if (e.code === 'KeyN') {
     const next = dn.cycle();
     toast(next === 'dusk' ? '黄昏 · 日落时分' : next === 'night' ? '夜晚 · 万家灯火' : '白昼 · 天空之城', 2200);
+    if (next === 'night') guide.unlockSpecial('night');
   } else if (e.code === 'KeyF') {
     if (fireworks.disabled) toast('烟花已关闭（?fw=0）', 1600);
     else { fireworks.volley(time); toast('烟花 · 连发', 1400); }
@@ -341,6 +360,7 @@ window.__cielo = {
   firework: () => fireworks.volley(time),
   fireworks,
   nightLights,
+  guide,
   ready: false,
 };
 
@@ -359,6 +379,8 @@ function drawFrame(now) {
 
   const c0 = performance.now();
   cam.update(FREEZE >= 0 ? 0 : dt);
+  // 冻结帧（截图 / ?freeze=）时 dt 恒为 0，抵达检测用一个固定步长，卡片才会出现
+  if (started) guide.update(cam.pos, FREEZE >= 0 ? 0.24 : dt);
   ambience.camPos = cam.pos;
   const aspect = W.w / W.h;
   const p = m4.perspective((cam.fov * Math.PI) / 180, aspect, 0.4, 4200);
@@ -650,7 +672,8 @@ function startExperience() {
   cam.setCam([6, 38.5, 108], [-18, 56, -200], 52);
   cam.setView(0, false);
   setTimeout(() => toast('空格键 · 自动巡游整座城市', 3200), 2600);
-  setTimeout(() => toast('N 切换昼夜 · F 放烟花', 3200), 6400);
+  setTimeout(() => toast('G · 打开城市导览抄本', 3200), 6200);
+  setTimeout(() => toast('N 切换昼夜 · F 放烟花', 3200), 10000);
   loadingEl?.classList.add('hidden');
   hud?.classList.add('show');
   setTimeout(() => hintEl?.classList.add('fade'), 9000);

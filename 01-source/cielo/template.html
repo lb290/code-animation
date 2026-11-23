@@ -95,6 +95,82 @@
     transition:height 1s cubic-bezier(.4,0,.2,1)}
   #letterbox:before{top:0}#letterbox:after{bottom:0}
   #letterbox.on:before,#letterbox.on:after{height:7vh}
+  /* ---------- 抵达卡片 ---------- */
+  #placecard{position:fixed;left:32px;bottom:100px;width:358px;max-width:calc(100vw - 64px);z-index:11;
+    padding:19px 22px 15px;border-radius:14px;pointer-events:none;color:#1c3160;
+    background:linear-gradient(168deg,rgba(253,251,244,.955),rgba(238,244,255,.925));
+    border:1px solid rgba(224,170,78,.55);
+    box-shadow:0 22px 60px rgba(30,70,130,.28), inset 0 0 0 1px rgba(255,255,255,.65);
+    backdrop-filter:blur(12px);opacity:0;transform:translateY(16px);
+    transition:opacity .55s ease, transform .55s ease}
+  #placecard.show{opacity:1;transform:translateY(0)}
+  #placecard .pc-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px}
+  #placecard #pc-area{font-size:10px;letter-spacing:.34em;color:#b4832f}
+  #placecard #pc-idx{font-family:"Helvetica Neue",Arial,sans-serif;font-size:9px;letter-spacing:.22em;color:#93a3c0}
+  #placecard h3{margin:0 0 5px;font-size:19.5px;font-weight:400;letter-spacing:.16em;color:#14264d}
+  #placecard #pc-en{font-family:"Helvetica Neue",Arial,sans-serif;font-size:8.5px;letter-spacing:.3em;color:#93a3c0}
+  #placecard #pc-quote{margin:13px 0 14px;padding-left:12px;border-left:2px solid rgba(224,170,78,.62);
+    font-size:13px;line-height:1.95;color:#3b5480}
+  #placecard .pc-foot{display:flex;justify-content:space-between;font-size:10px;letter-spacing:.2em;color:#93a3c0}
+  #placecard .pc-foot b{color:#b4832f;margin-right:4px}
+  /* ---------- 导览抄本 ---------- */
+  #guide{position:fixed;inset:0;z-index:14;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(ellipse at 50% 40%,rgba(12,30,62,.34),rgba(6,16,36,.56));
+    backdrop-filter:blur(8px);opacity:0;visibility:hidden;transition:opacity .42s ease, visibility .42s}
+  #guide.open{opacity:1;visibility:visible}
+  #hud.reading .chrome{opacity:0}
+  .gb{width:min(1070px,92vw);height:min(75vh,710px);display:flex;flex-direction:column;overflow:hidden;
+    border-radius:18px;color:#1b3160;background:linear-gradient(158deg,#fcf8ef 0%,#f1f6fe 52%,#e8f1fd 100%);
+    box-shadow:0 44px 130px rgba(8,26,60,.5), inset 0 0 0 1px rgba(255,255,255,.72);
+    transform:translateY(20px) scale(.985);transition:transform .42s cubic-bezier(.2,.7,.2,1)}
+  #guide.open .gb{transform:none}
+  .gb-head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;
+    padding:20px 30px 14px;border-bottom:1px solid rgba(28,49,96,.14)}
+  .gb-cn{font-size:22px;letter-spacing:.32em;color:#12224a}
+  .gb-en{display:block;font-family:"Helvetica Neue",Arial,sans-serif;font-size:8.5px;letter-spacing:.34em;
+    color:#93a3c0;margin-top:7px}
+  .gb-prog{text-align:right;font-size:10px;letter-spacing:.22em;color:#93a3c0}
+  .gb-prog b{display:block;font-size:20px;font-weight:400;letter-spacing:.1em;color:#b4832f;margin-bottom:3px}
+  .gb-body{flex:1;display:flex;min-height:0}
+  .gb-list{flex:0 0 300px;width:300px;overflow:auto;padding:8px 0 22px;border-right:1px solid rgba(28,49,96,.12)}
+  .gb-list::-webkit-scrollbar,.gb-art::-webkit-scrollbar{width:6px}
+  .gb-list::-webkit-scrollbar-thumb,.gb-art::-webkit-scrollbar-thumb{background:rgba(28,49,96,.18);border-radius:3px}
+  .gb-area{padding:15px 22px 6px;font-size:9.5px;letter-spacing:.3em;color:#b4832f}
+  .gb-area span{display:block;font-family:"Helvetica Neue",Arial,sans-serif;font-size:8px;letter-spacing:.26em;
+    color:#a8b6cf;margin-top:3px}
+  .gb-item{display:flex;align-items:center;gap:9px;padding:7.5px 22px;cursor:pointer;font-size:13.5px;
+    letter-spacing:.1em;border-left:2px solid transparent;transition:background .18s,color .18s,border-color .18s}
+  .gb-item:hover{background:rgba(224,170,78,.11)}
+  .gb-item.sel{background:rgba(224,170,78,.17);border-left-color:#c99436;color:#0f2147}
+  .gb-item.locked{color:#9aa8c2}
+  .gb-item .idx{font-family:"Helvetica Neue",Arial,sans-serif;font-size:9.5px;letter-spacing:.06em;color:#a8b6cf;min-width:19px}
+  .gb-item .nm{flex:1}
+  .gb-item .st{font-size:9px;letter-spacing:.1em;color:#c3a468}
+  .gb-item.locked .st{color:#c3cddf}
+  .gb-art{flex:1;overflow:auto;padding:30px 40px 30px}
+  .gb-art .a-tag{font-size:9.5px;letter-spacing:.32em;color:#b4832f}
+  .gb-art h2{margin:13px 0 7px;font-size:27px;font-weight:400;letter-spacing:.16em;color:#0f2147}
+  .gb-art .a-en{font-family:"Helvetica Neue",Arial,sans-serif;font-size:8.5px;letter-spacing:.3em;color:#93a3c0}
+  .gb-art .a-quote{margin:26px 0 24px;padding:2px 0 2px 18px;border-left:2px solid rgba(224,170,78,.7);
+    font-size:16px;line-height:2.05;color:#2f4a78}
+  .gb-art p{margin:0 0 17px;font-size:14.5px;line-height:2.2;color:#3a517c;letter-spacing:.02em}
+  .gb-art p.a-locked{color:#9aa8c2;line-height:2.1;margin-top:8px}
+  .gb-art .a-go{margin-top:24px;padding-top:15px;border-top:1px solid rgba(28,49,96,.12);
+    font-size:11.5px;letter-spacing:.14em;color:#93a3c0}
+  .gb-art .a-go b{color:#b4832f;font-weight:400;margin-right:10px}
+  .gb-foot{display:flex;flex-wrap:wrap;gap:22px;padding:11px 30px;border-top:1px solid rgba(28,49,96,.14);
+    background:rgba(255,255,255,.42);font-family:"Helvetica Neue",Arial,sans-serif;
+    font-size:10px;letter-spacing:.16em;color:#93a3c0}
+  .gb-foot b{display:inline-block;min-width:16px;padding:1px 5px;margin:0 5px 0 0;border:1px solid rgba(28,49,96,.22);
+    border-radius:3px;color:#3b5480;font-family:inherit;font-size:9.5px;text-align:center}
+  .gb-foot .tip{margin-left:auto;opacity:.85}
+  @media (max-width:820px){
+    .gb-list{display:none}
+    .gb-art{padding:22px 22px 26px}
+    .gb-art h2{font-size:22px}
+    #placecard{left:16px;right:16px;bottom:92px;width:auto}
+    .gb-foot .tip{display:none}
+  }
 </style>
 </head>
 <body>
@@ -108,12 +184,12 @@
     <h1>天空鲸城</h1>
     <div class="sub">CIELO — The Whale Above the Glass City</div>
     <div class="rule"></div>
-    <p class="blurb">云上的白城，大理石露台朝着一座玻璃穹顶的宫殿。<br>巨鲸背着城堡缓缓游过塔尖，浅蓝色的列车在银钢高架环线上滑行 ——<br>它已绕到宫殿背后，不再挡住露台的风景。锦鲤在空气里游弋 —— 这里是整座幻想城市。<br><span style="color:#ffe9b8">宫殿一层的金色门厅、后殿的私人套间，玻璃宫的蓝色大厅，大教堂、车站，<br>还有新落成的歌剧院，都可以飞进去游览。<br>按 N 等到夜幕降临：万家灯火亮起，鲸背城浮在星空里；再按 F 放一朵烟花。</span></p>
+    <p class="blurb">云上的白城，大理石露台朝着一座玻璃穹顶的宫殿。<br>巨鲸背着城堡缓缓游过塔尖，浅蓝色的列车在银钢高架环线上滑行 ——<br>它已绕到宫殿背后，不再挡住露台的风景。锦鲤在空气里游弋 —— 这里是整座幻想城市。<br><span style="color:#ffe9b8">宫殿一层的金色门厅、后殿的私人套间，玻璃宫的蓝色大厅，大教堂、车站，<br>还有新落成的歌剧院，都可以飞进去游览。<br>每飞进一处地标，都会滑出一张卡片：按 <b style="color:#ffe9b8">G</b> 打开《城市导览抄本》，读它的来历与故事。<br>按 N 等到夜幕降临：万家灯火亮起，鲸背城浮在星空里；再按 F 放一朵烟花。</span></p>
     <button id="start" disabled>正在点亮城市…</button>
     <div class="keys">
       <b>WASD</b> 飞行 &nbsp;·&nbsp; <b>鼠标</b> 环视 &nbsp;·&nbsp; <b>Q / E</b> 升降 &nbsp;·&nbsp; <b>Shift</b> 加速<br>
       <b>空格</b> 自动巡游 &nbsp;·&nbsp; <b>1–9 / 0</b> 观景点 &nbsp;·&nbsp; <b>Z / X</b> 切换 &nbsp;·&nbsp; <b>P</b> 摄影<br>
-      <b>N</b> 昼夜切换（白昼 / 黄昏 / 夜晚） &nbsp;·&nbsp; <b>F</b> 放烟花
+      <b>G</b> 城市导览抄本 &nbsp;·&nbsp; <b>N</b> 昼夜切换（白昼 / 黄昏 / 夜晚） &nbsp;·&nbsp; <b>F</b> 放烟花
     </div>
   </div>
 </div>
@@ -123,7 +199,7 @@
   <div class="chrome" id="fps"></div>
   <div class="chrome hint" id="hint">
     <span><kbd>W A S D</kbd>飞行</span><span><kbd>鼠标</kbd>环视</span><span><kbd>Q E</kbd>升降</span>
-    <span><kbd>空格</kbd>巡游</span><span><kbd>1-9</kbd>观景</span><span><kbd>Z X</kbd>切换</span><span><kbd>N</kbd>昼夜</span><span><kbd>F</kbd>烟花</span><span><kbd>H</kbd>帮助</span>
+    <span><kbd>空格</kbd>巡游</span><span><kbd>1-9</kbd>观景</span><span><kbd>Z X</kbd>切换</span><span><kbd>G</kbd>导览</span><span><kbd>N</kbd>昼夜</span><span><kbd>F</kbd>烟花</span><span><kbd>H</kbd>帮助</span>
   </div>
   <div class="chrome" id="tod">白昼</div>
   <div id="toast"></div>
@@ -136,11 +212,42 @@
     <div><span>空格</span><span class="v">自动巡游 开 / 关</span></div>
     <div><span>1 – 9 / 0</span><span class="v">跳转观景点</span></div>
     <div><span>Z / X</span><span class="v">上一个 / 下一个观景点</span></div>
+    <div><span>G</span><span class="v">城市导览抄本（已抵达的记载）</span></div>
     <div><span>N</span><span class="v">昼夜切换（白昼 / 黄昏 / 夜晚）</span></div>
     <div><span>F</span><span class="v">放一朵烟花</span></div>
     <div><span>P</span><span class="v">摄影模式（隐藏界面）</span></div>
     <div><span>R</span><span class="v">回到露台</span></div>
     <div><span>H</span><span class="v">收起此面板</span></div>
+  </div>
+</div>
+
+<!-- ---------- 抵达卡片：第一次飞进某处地标时滑出 ---------- -->
+<div id="placecard">
+  <div class="pc-top"><span id="pc-area">露台 · 记载</span><span id="pc-idx">LORE 01 / 31</span></div>
+  <h3 id="pc-title">露台初见</h3>
+  <div id="pc-en">THE BELVEDERE</div>
+  <p id="pc-quote"></p>
+  <div class="pc-foot"><span><b>G</b>阅读记载</span><span>继续飞行即收起</span></div>
+</div>
+
+<!-- ---------- 导览抄本：G 打开 ---------- -->
+<div id="guide">
+  <div class="gb">
+    <header class="gb-head">
+      <div>
+        <span class="gb-cn">城市导览抄本</span>
+        <span class="gb-en">THE ALMANAC OF CIELO &nbsp;·&nbsp; KEPT BY THE CITY ARCHIVE</span>
+      </div>
+      <div class="gb-prog"><b id="gb-count">0 / 31</b>已抵达 / 全城</div>
+    </header>
+    <div class="gb-body">
+      <nav class="gb-list" id="gb-list"></nav>
+      <article class="gb-art" id="gb-article"></article>
+    </div>
+    <footer class="gb-foot">
+      <span><b>G</b>收起</span><span><b>↑</b><b>↓</b>翻页</span><span><b>U</b>预读未抵达的记载</span>
+      <span class="tip">每抵达一处，抄本才会显影那一页</span>
+    </footer>
   </div>
 </div>
 

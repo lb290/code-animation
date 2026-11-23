@@ -19,6 +19,7 @@ import { buildCathedral } from './cathedral.js';
 import { buildStation } from './station.js';
 import { buildPalaceChambers } from './palace-chambers.js';
 import { buildOpera } from './opera.js';
+import { buildTeaPavilion } from './tea-pavilion.js';
 import { disc, MT } from './lib3d.js';
 import { C, LOOK } from './palette.js';
 import { L } from './layout.js';
@@ -77,6 +78,9 @@ export function buildWorld(gl) {
   // draws never shift any earlier module's sequence.
   tag('palaceChambers', () => buildPalaceChambers(b, ctx, rng));
   tag('opera', () => buildOpera(b, ctx, rng));
+  // round 10: the floating tea pavilion high above the south-west rim. Appended LAST so
+  // its local rng draws never shift any earlier module's sequence.
+  tag('teaPavilion', () => buildTeaPavilion(b, ctx, rng));
 
   const built = b.build(gl);
   const m = mesh(gl, built.verts, built.indices);

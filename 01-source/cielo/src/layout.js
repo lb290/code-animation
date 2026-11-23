@@ -28,6 +28,12 @@ export const L = {
   // z=-146, the station's long axis); its front faces +Z toward the boulevard.
   station: { x: 58, z: -146, rot: 0 },
 
+  // round 10: 云上茶席 · the floating tea pavilion. A small sky island beyond the city's
+  // south-west rim, high above the distant skyline: nothing else occupies this air
+  // (city radius 260, radius of the anchor ≈ 360), and it reads in the left third of
+  // the hero terrace view — a lit pavilion hovering in the clouds above the ferris wheel.
+  tea: { x: -240, y: 128, z: -268, rot: 0 },
+
   // round 8: the newly built enterable landmark — the grand opera house. It stands on
   // the east side of the boulevard, facing the central plaza (main facade looks -X,
   // across the boulevard toward the cathedral). Footprint ~72 x 54 m around the anchor.
@@ -194,5 +200,10 @@ export const L = {
     { name: '玻璃宫星象台', pos: [104, 25, 42], look: [104, 78, 19], fov: 82 },
     { name: '玻璃宫浑天仪', pos: [104, 50, 34], look: [104, 76, 17], fov: 80 },
     { name: '玻璃宫观星回廊', pos: [104, 57.5, 36], look: [104, 62, 10], fov: 78 },
+    // round 10: the floating tea pavilion (L.tea). The module owner refines these three;
+    // they exist from the scaffold build so screenshots can target the new content.
+    { name: '云上茶席', pos: [-198, 150, -228], look: [-240, 127, -266], fov: 58 },
+    { name: '茶席长桌', pos: [-237.5, 130.9, -258.5], look: [-239.2, 129.4, -267.2], fov: 70 },
+    { name: '镜池仰观', pos: [-224, 130.2, -259], look: [-241, 137, -267], fov: 74 },
   ],
 };
