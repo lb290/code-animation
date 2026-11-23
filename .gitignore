@@ -1,0 +1,46 @@
+# ============================================================
+#  代码动画 · 仓库忽略规则
+#  只入库：人写的代码 + 笔记 + 可双击打开的成品单文件 HTML。
+#  渲染中间帧 / 静帧图集 / 视频 / 第三方克隆 / 工程缓存 / 备份 一律不入库。
+#  视频与图集发布在 GitHub Releases。
+# ============================================================
+
+# ---- 依赖与工具缓存 ----
+node_modules/
+__pycache__/
+*.pyc
+.pnpm-store/
+.chrome-profile/
+
+# ---- 第三方参考仓库（别人的，clone 来的，370 MB）----
+02-refs/
+
+# ---- AnyAudio 音频工程缓存（素材副本，241 MB）----
+.anyaudio/
+
+# ---- 备份快照 ----
+_backup/
+
+# ---- 渲染产物：视频、静帧、取景试验、临时目录 ----
+04-output/_*/
+04-output/*.mp4
+04-output/*.png
+04-output/frames/
+04-output/stills/
+04-output/cielo/
+04-output/cielo-look/
+04-output/cielo-whale/
+04-output/skycity/
+
+# ---- 脚本 bug 生成的垃圾目录 ----
+01-source/cielo/%SystemDrive%/
+
+# ---- 临时文件 / 凭据，永不入库 ----
+.tmp-*
+*.token
+
+# ---- 系统垃圾 ----
+Thumbs.db
+desktop.ini
+.DS_Store
+*.log

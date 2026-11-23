@@ -1,0 +1,308 @@
+[
+ {
+  "v": 0,
+  "q": "freeze=9"
+ },
+ {
+  "v": 1,
+  "q": "freeze=9"
+ },
+ {
+  "v": 2,
+  "q": "freeze=9"
+ },
+ {
+  "v": 3,
+  "q": "freeze=9"
+ },
+ {
+  "v": 4,
+  "q": "freeze=9"
+ },
+ {
+  "v": 5,
+  "q": "freeze=9"
+ },
+ {
+  "v": 6,
+  "q": "freeze=9"
+ },
+ {
+  "v": 7,
+  "q": "freeze=9"
+ },
+ {
+  "v": 8,
+  "q": "freeze=9"
+ },
+ {
+  "v": 9,
+  "q": "freeze=9"
+ },
+ {
+  "v": 10,
+  "q": "freeze=9"
+ },
+ {
+  "v": 11,
+  "q": "freeze=9"
+ },
+ {
+  "v": 12,
+  "q": "freeze=9"
+ },
+ {
+  "v": 13,
+  "q": "freeze=9"
+ },
+ {
+  "v": 14,
+  "q": "freeze=9"
+ },
+ {
+  "v": 15,
+  "q": "freeze=9"
+ },
+ {
+  "v": 16,
+  "q": "freeze=9"
+ },
+ {
+  "v": 17,
+  "q": "freeze=9"
+ },
+ {
+  "v": 18,
+  "q": "freeze=9"
+ },
+ {
+  "v": 19,
+  "q": "freeze=9"
+ },
+ {
+  "v": 20,
+  "q": "freeze=9"
+ },
+ {
+  "v": 21,
+  "q": "freeze=9"
+ },
+ {
+  "v": 22,
+  "q": "freeze=9"
+ },
+ {
+  "v": 23,
+  "q": "freeze=9"
+ },
+ {
+  "v": 24,
+  "q": "freeze=9"
+ },
+ {
+  "v": 25,
+  "q": "freeze=9"
+ },
+ {
+  "v": 26,
+  "q": "freeze=9"
+ },
+ {
+  "v": 27,
+  "q": "freeze=9"
+ },
+ {
+  "v": 28,
+  "q": "freeze=9"
+ },
+ {
+  "v": 29,
+  "q": "freeze=9"
+ },
+ {
+  "v": 30,
+  "q": "freeze=9"
+ },
+ {
+  "v": 31,
+  "q": "freeze=9"
+ },
+ {
+  "v": 32,
+  "q": "freeze=9"
+ },
+ {
+  "v": 33,
+  "q": "freeze=9"
+ },
+ {
+  "v": 34,
+  "q": "freeze=9"
+ },
+ {
+  "v": 35,
+  "q": "freeze=9"
+ },
+ {
+  "v": 36,
+  "q": "freeze=9"
+ },
+ {
+  "v": 37,
+  "q": "freeze=9"
+ },
+ {
+  "v": 38,
+  "q": "freeze=9"
+ },
+ {
+  "v": 39,
+  "q": "freeze=9"
+ },
+ {
+  "v": 40,
+  "q": "freeze=82"
+ },
+ {
+  "v": 41,
+  "q": "freeze=9"
+ },
+ {
+  "v": 42,
+  "q": "freeze=9"
+ },
+ {
+  "v": 43,
+  "q": "freeze=9"
+ },
+ {
+  "v": 44,
+  "q": "freeze=9"
+ },
+ {
+  "v": 45,
+  "q": "freeze=9"
+ },
+ {
+  "v": 46,
+  "q": "freeze=9"
+ },
+ {
+  "v": 47,
+  "q": "freeze=9"
+ },
+ {
+  "v": 48,
+  "q": "freeze=9"
+ },
+ {
+  "v": 49,
+  "q": "freeze=88"
+ },
+ {
+  "v": 50,
+  "q": "freeze=84"
+ },
+ {
+  "v": 51,
+  "q": "freeze=9"
+ },
+ {
+  "v": 52,
+  "q": "freeze=9"
+ },
+ {
+  "v": 53,
+  "q": "freeze=9"
+ },
+ {
+  "v": 54,
+  "q": "freeze=9"
+ },
+ {
+  "v": 55,
+  "q": "freeze=9"
+ },
+ {
+  "v": 56,
+  "q": "freeze=9"
+ },
+ {
+  "v": 57,
+  "q": "freeze=9"
+ },
+ {
+  "v": 58,
+  "q": "freeze=9"
+ },
+ {
+  "v": 59,
+  "q": "freeze=9"
+ },
+ {
+  "v": 60,
+  "q": "freeze=9"
+ },
+ {
+  "v": 61,
+  "q": "freeze=9"
+ },
+ {
+  "v": 62,
+  "q": "freeze=9"
+ },
+ {
+  "v": 63,
+  "q": "freeze=9"
+ },
+ {
+  "v": 64,
+  "q": "freeze=9"
+ },
+ {
+  "cam": "0,620,40",
+  "look": "0,0,-40",
+  "fov": 55,
+  "q": "freeze=9",
+  "name": "top-day"
+ },
+ {
+  "cam": "0,620,40",
+  "look": "0,0,-40",
+  "fov": 55,
+  "q": "freeze=9&tod=night",
+  "name": "top-night"
+ },
+ {
+  "v": 1,
+  "q": "freeze=9&tod=night",
+  "name": "night-terrace"
+ },
+ {
+  "v": 40,
+  "q": "freeze=82&tod=night",
+  "name": "night-rail"
+ },
+ {
+  "v": 59,
+  "q": "freeze=9&tod=night",
+  "name": "night-suite"
+ },
+ {
+  "v": 55,
+  "q": "freeze=9&tod=night",
+  "name": "night-opera-foyer"
+ },
+ {
+  "cam": "34,15,-58",
+  "look": "95,26,-58",
+  "fov": 56,
+  "q": "freeze=9&tod=night",
+  "name": "night-opera"
+ },
+ {
+  "v": 7,
+  "q": "freeze=9&tod=dusk",
+  "name": "dusk-city"
+ }
+]
