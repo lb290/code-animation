@@ -13,6 +13,8 @@ import { DayNight } from './daynight.js';
 import { buildNightLights } from './night-lights.js';
 import { makeFireworks } from './fireworks.js';
 import { createGuide } from './guide.js';
+import { detectTouch, createTouch } from './touch.js';
+import { createPostcard } from './postcard.js';
 
 const canvas = document.getElementById('c');
 const gl = createGL(canvas);
@@ -40,6 +42,23 @@ const DBG_FOV = params.has('fov') ? Number(params.get('fov')) : 55;
 // ?fw=N pre-loads N fireworks shells, ?fw=0 disables them entirely.
 const TOD = params.has('tod') ? String(params.get('tod')).toLowerCase() : 'day';
 const FW = params.has('fw') ? Number(params.get('fw')) : null;
+
+// ---------------------------------------------------------------- round 11: touch + quality
+// 触屏设备默认低画质档（关阴影 + 降分辨率），桌面保持高画质；?touch=0/1 可强制，
+// ?q=low|mid|high 可手动指定（对比画质与性能时用）。
+const FORCED_TOUCH = params.has('touch') ? params.get('touch') !== '0' : null;
+const TOUCH = FORCED_TOUCH !== null ? FORCED_TOUCH : detectTouch();
+const TIERS = {
+  high: { shadow: true,  scale: 1.00, min: 0.55, max: 1.00, adaptMs: 27, fxaa: 1, lights: 12 },
+  mid:  { shadow: false, scale: 0.80, min: 0.50, max: 0.85, adaptMs: 30, fxaa: 1, lights: 10 },
+  low:  { shadow: false, scale: 0.60, min: 0.40, max: 0.68, adaptMs: 34, fxaa: 0, lights: 8 },
+};
+const TIER_CN = { high: '高', mid: '中', low: '流畅' };
+let QNAME = String(params.get('q') || (TOUCH ? 'low' : 'high')).toLowerCase();
+if (!TIERS[QNAME]) QNAME = 'high';
+let Q = TIERS[QNAME];
+if (TOUCH) document.documentElement.classList.add('touch');
+document.documentElement.dataset.q = QNAME;
 
 // ---------------------------------------------------------------- programs
 const P = {
@@ -92,6 +111,8 @@ console.log('[main] fireworks systems: ' + fireworks.systems.map((s) => s.name +
 // ---- sun shadow map -------------------------------------------------------
 const SHADOW = { size: 2048, rt: null, proj: null, view: null, vp: new Float32Array(16), on: !OFF.has('shadow') };
 try { SHADOW.rt = makeDepthRT(gl, SHADOW.size); } catch (e) { SHADOW.on = false; console.warn('shadow off', e); }
+// 移动质量档：阴影是 2M tri 的第二次整场景绘制，中/低档直接关掉（本轮最大的帧时间来源）。
+if (!Q.shadow) SHADOW.on = false;
 {
   const center = [0, 6, -50];
   const lightDir = norm(LOOK.sunDir);            // points toward the sun
@@ -153,8 +174,8 @@ if (params.has('tour')) {
 }
 
 // ---------------------------------------------------------------- render targets
-const W = { value: 1600, h: 900, scale: 1 };
-const ADAPT = { t: 0, n: 0, min: 0.55, max: 1.0, cool: 0 };
+const W = { value: 1600, h: 900, scale: Q.scale };
+const ADAPT = { t: 0, n: 0, min: Q.min, max: Q.max, hi: Q.adaptMs, lo: Q.adaptMs * 0.55, cool: 0 };
 let rtScene = null, rtBloomA = null, rtBloomB = null, rtScene2 = null;
 
 function resize() {
@@ -194,7 +215,7 @@ function nearestLights(pos) {
     best.push([d2, i]);
   }
   best.sort((a, b) => a[0] - b[0]);
-  const n = Math.min(12, best.length);
+  const n = Math.min(Q.lights, best.length);
   LIGHTS.n = n;
   for (let k = 0; k < n; k++) {
     const p = pts[best[k][1]];
@@ -255,6 +276,13 @@ const helpEl = document.getElementById('help');
 const fpsEl = document.getElementById('fps');
 const hintEl = document.getElementById('hint');
 const todEl = document.getElementById('tod');
+// 标题页隐藏：过渡结束后把 display 也关掉。只靠 visibility 过渡在部分浏览器/无头环境
+// 里会继续拦截点击（触屏层被它吃掉，本轮就是在移动模拟里踩到的）。
+function hideLoading() {
+  if (!loadingEl) return;
+  loadingEl.classList.add('hidden');
+  setTimeout(() => { if (loadingEl.classList.contains('hidden')) loadingEl.style.display = 'none'; }, 1500);
+}
 let toastT = 0;
 function toast(msg, ms = 2400) {
   if (!toastEl) return;
@@ -269,6 +297,8 @@ function toast(msg, ms = 2400) {
 const guide = createGuide({
   cam,
   toast: (msg, ms) => toast(msg, ms),
+  // 触屏上没有键盘，卡片停留久一点，并且可以点开阅读
+  cardMs: TOUCH ? 12000 : 9000,
 });
 
 let photoMode = false;
@@ -278,9 +308,76 @@ function setPhoto(on) {
   document.getElementById('letterbox')?.classList.toggle('on', on);
 }
 
+// ---------------------------------------------------------------- round 11: 共用动作
+// 键盘、触屏动作条、__cielo 调试 API 调的是同一套函数，不各写一份。
+function toggleTour() {
+  if (cam.tour) { cam.stopTour(); toast('自由飞行'); }
+  else { cam.startTour(); toast('自动巡游'); }
+}
+function cycleTod() {
+  const next = dn.cycle();
+  toast(next === 'dusk' ? '黄昏 · 日落时分' : next === 'night' ? '夜晚 · 万家灯火' : '白昼 · 天空之城', 2200);
+  if (next === 'night') guide.unlockSpecial('night');
+  return next;
+}
+function fireVolley() {
+  if (fireworks.disabled) toast('烟花已关闭（?fw=0）', 1600);
+  else { fireworks.volley(time); toast('烟花 · 连发', 1400); }
+}
+function requestFullscreen() {
+  try {
+    if (document.fullscreenElement) { document.exitFullscreen?.(); return; }
+    const el = document.documentElement;
+    const p = el.requestFullscreen?.() || el.webkitRequestFullscreen?.();
+    if (p && p.then) p.then(() => { try { screen.orientation?.lock?.('landscape'); } catch (e) { /* 平板可能不支持，忽略 */ } }).catch(() => {});
+  } catch (e) { /* 非用户手势或浏览器不支持：静默忽略 */ }
+}
+
+// 明信片工坊（产品改进 A）：任意机位出一张带地名/日期/昼夜的明信片。
+const postcard = createPostcard({
+  gl, W, cam, toast,
+  todLabel: () => curLook.label,
+  setScale: (s) => { W.scale = s; resize(); },
+});
+
+// 触屏动作条：与键盘一一对应
+const touch = TOUCH ? createTouch({
+  canvas, cam, toast,
+  actions: {
+    tour: toggleTour,
+    prev: () => cam.setView(cam.viewIndex - 1, false),
+    next: () => cam.setView(cam.viewIndex + 1, false),
+    tod: cycleTod,
+    fireworks: fireVolley,
+    guide: () => guide.toggle(),
+    photo: () => setPhoto(!photoMode),
+    postcard: () => postcard.open(),
+    home: () => cam.setView(0),
+    help: () => helpEl?.classList.toggle('show'),
+    fullscreen: requestFullscreen,
+  },
+}) : { enabled: false };
+
+// 手动 / 自动切换画质档（触屏默认 low；桌面 ?q= 或自动降档可切）
+function setQuality(name) {
+  if (!TIERS[name] || name === QNAME) return;
+  QNAME = name;
+  Q = TIERS[name];
+  ADAPT.min = Q.min; ADAPT.max = Q.max;
+  ADAPT.hi = Q.adaptMs; ADAPT.lo = Q.adaptMs * 0.55;
+  SHADOW.on = !!Q.shadow && !!SHADOW.rt && !OFF.has('shadow');
+  W.scale = Math.min(Math.max(W.scale, Q.min), Q.max);
+  document.documentElement.dataset.q = name;
+  resize();
+  console.log('[main] quality -> ' + name + ' (scale ' + W.scale.toFixed(2) + ', shadow ' + SHADOW.on + ')');
+  if (started) toast('画质已切到「' + TIER_CN[name] + '」', 2200);
+}
+
 // pointer lock look
 let locked = false;
 canvas.addEventListener('click', () => {
+  // 触屏上没有指针锁定：请求它会失败并吞掉手势（第十一轮）
+  if (TOUCH) return;
   if (!locked && !NOUI) canvas.requestPointerLock?.();
 });
 document.addEventListener('pointerlockchange', () => {
@@ -312,8 +409,10 @@ window.addEventListener('keydown', (e) => {
   cam.onKey(e.code, true);
   if (e.code === 'Space') {
     e.preventDefault();
-    if (cam.tour) { cam.stopTour(); toast('自由飞行'); }
-    else { cam.startTour(); toast('自动巡游'); }
+    toggleTour();
+  } else if (e.code === 'KeyC') {
+    e.preventDefault();
+    postcard.open();
   } else if (/^Digit[1-9]$/.test(e.code)) {
     cam.setView(Number(e.code.slice(5)) - 1);
   } else if (e.code === 'Digit0') {
@@ -332,12 +431,9 @@ window.addEventListener('keydown', (e) => {
     const on = ambience.toggle();
     toast(on ? '声音开' : '声音关');
   } else if (e.code === 'KeyN') {
-    const next = dn.cycle();
-    toast(next === 'dusk' ? '黄昏 · 日落时分' : next === 'night' ? '夜晚 · 万家灯火' : '白昼 · 天空之城', 2200);
-    if (next === 'night') guide.unlockSpecial('night');
+    cycleTod();
   } else if (e.code === 'KeyF') {
-    if (fireworks.disabled) toast('烟花已关闭（?fw=0）', 1600);
-    else { fireworks.volley(time); toast('烟花 · 连发', 1400); }
+    fireVolley();
   }
 });
 window.addEventListener('keyup', (e) => cam.onKey(e.code, false));
@@ -347,6 +443,7 @@ let time = START_T;
 let last = performance.now();
 let frames = 0, fpsAcc = 0, cpuMs = 0;
 let started = false;
+let bootN = 0, bootSum = 0;   // 开局帧时间采样（自动画质档用）
 
 const perf = { frames: 0, cpuMs: 0, drawCalls: 0, tris: world.tris, buildMs };
 window.__cielo = {
@@ -361,6 +458,13 @@ window.__cielo = {
   fireworks,
   nightLights,
   guide,
+  postcard,
+  touch,
+  isTouch: TOUCH,
+  quality: () => QNAME,
+  tiers: TIERS,
+  setQuality: (n) => setQuality(n),
+  stats: () => ({ quality: QNAME, scale: W.scale, shadow: SHADOW.on, touch: TOUCH, pointerLocked: locked, started }),
   ready: false,
 };
 
@@ -433,9 +537,15 @@ function drawFrame(now) {
   gl.depthMask(true);
   gl.enable(gl.DEPTH_TEST);
   gl.depthFunc(gl.LEQUAL);
-  if (SHADOW.on && SHADOW.rt) {
+  // round 11: 低画质档关掉阴影后**仍然**要把深度纹理绑到 unit 0 —— 否则 unit 0 还
+  // 留着上一帧 composite 绑上去的 rtScene 颜色纹理，而场景 shader 的 uShadowMap 采样
+  // unit 0，就形成「帧缓冲 ↔ 已绑定纹理」反馈环（安卓上会直接丢帧/黑屏）。
+  if (SHADOW.rt) {
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, SHADOW.rt.tex);
+  } else {
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, null);
   }
 
   // sky dome (no depth write)
@@ -620,12 +730,15 @@ function drawFrame(now) {
     uTime: time, uRes: [W.w, W.h],
     uExposure: curLook.exposure, uBloom: curLook.bloomInt,
     uSaturation: curLook.saturation, uContrast: curLook.contrast,
-    uVignette: curLook.vignette, uGrain: 0.018, uFxaa: W.scale >= 0.6 ? 1.0 : 0.0,
+    uVignette: curLook.vignette, uGrain: 0.018, uFxaa: Q.fxaa && W.scale >= 0.6 ? 1.0 : 0.0,
   });
   gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, rtScene.tex);
   gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, rtBloomA.tex);
   gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, rtScene2.tex);
   drawMesh(gl, quadMesh); draws++;
+
+  // ---- 8. 明信片工坊：需要出片时先抬一帧分辨率，下一帧 readPixels（截完自动恢复）
+  if (postcard) postcard.onFrame();
 
   const c1 = performance.now();
   cpuMs = cpuMs * 0.9 + (c1 - c0) * 0.1;
@@ -636,8 +749,20 @@ function drawFrame(now) {
       const avg = ADAPT.t / ADAPT.n;
       ADAPT.t = 0; ADAPT.n = 0;
       if (ADAPT.cool > 0) ADAPT.cool--;
-      else if (avg > 27 && W.scale > ADAPT.min) { W.scale = Math.max(ADAPT.min, W.scale - 0.12); resize(); ADAPT.cool = 2; }
-      else if (avg < 15 && W.scale < ADAPT.max) { W.scale = Math.min(ADAPT.max, W.scale + 0.08); resize(); ADAPT.cool = 2; }
+      else if (avg > ADAPT.hi && W.scale > ADAPT.min) { W.scale = Math.max(ADAPT.min, W.scale - 0.12); resize(); ADAPT.cool = 2; }
+      else if (avg < ADAPT.lo && W.scale < ADAPT.max) { W.scale = Math.min(ADAPT.max, W.scale + 0.08); resize(); ADAPT.cool = 2; }
+    }
+  }
+  // 开局 150 帧后按实测帧时间调整一次画质档（只调一次，避免来回跳）
+  if (FREEZE < 0 && started && bootN >= 0) {
+    bootN++;
+    bootSum += dtRaw * 1000;
+    if (bootN === 150) {
+      const avg = bootSum / bootN;
+      bootN = -1;
+      console.log('[main] first 150 frames avg ' + avg.toFixed(1) + ' ms · quality ' + QNAME);
+      if (avg > 40 && QNAME !== 'low') setQuality('low');
+      else if (TOUCH && avg < 18 && QNAME === 'low') setQuality('mid');
     }
   }
   perf.cpuMs = cpuMs;
@@ -663,7 +788,7 @@ function ready() {
     startBtn.disabled = false;
     startBtn.textContent = '进入城市';
   }
-  if (loadingEl && (NOUI || params.has('autostart'))) loadingEl.classList.add('hidden');
+  if (loadingEl && (NOUI || params.has('autostart'))) hideLoading();
 }
 function startExperience() {
   started = true;
@@ -671,23 +796,36 @@ function startExperience() {
   // gentle push-in from a slightly higher, wider pose to the hero framing
   cam.setCam([6, 38.5, 108], [-18, 56, -200], 52);
   cam.setView(0, false);
-  setTimeout(() => toast('空格键 · 自动巡游整座城市', 3200), 2600);
-  setTimeout(() => toast('G · 打开城市导览抄本', 3200), 6200);
-  setTimeout(() => toast('N 切换昼夜 · F 放烟花', 3200), 10000);
-  loadingEl?.classList.add('hidden');
+  if (TOUCH) {
+    setTimeout(() => toast('左手推摇杆飞行 · 右手拖动环视', 3600), 2200);
+    setTimeout(() => toast('底部「导览」打开城市抄本', 3600), 6600);
+  } else {
+    setTimeout(() => toast('空格键 · 自动巡游整座城市', 3200), 2600);
+    setTimeout(() => toast('G · 打开城市导览抄本', 3200), 6200);
+    setTimeout(() => toast('N 切换昼夜 · F 放烟花', 3200), 10000);
+  }
+  hideLoading();
   hud?.classList.add('show');
   setTimeout(() => hintEl?.classList.add('fade'), 9000);
-  canvas.requestPointerLock?.();
+  if (!TOUCH) canvas.requestPointerLock?.();
 }
 if (startBtn) startBtn.addEventListener('click', startExperience);
 if (NOUI) {
-  document.getElementById('loading')?.classList.add('hidden');
+  hideLoading();
   hud?.classList.add('show');
   started = true;
+}
+
+// round 11: PWA —— 线上 https（GitHub Pages）可以「添加到主屏幕」，装好后断网也能打开；
+// 局域网 http 或直接双击本地文件时浏览器不允许 service worker，自动跳过。
+if (!params.has('sw0') && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+  try { navigator.serviceWorker?.register('cielo-sw.js').catch(() => {}); } catch (e) { /* ignore */ }
 }
 
 requestAnimationFrame((n) => {
   last = n;
   requestAnimationFrame(drawFrame);
   setTimeout(ready, 60);
+  // ?postcard=1：截图/验收时自动冲洗一张明信片
+  if (params.has('postcard')) setTimeout(() => { if (started) postcard.open(); }, 1800);
 });

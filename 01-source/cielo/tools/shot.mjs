@@ -8,7 +8,9 @@
 //
 // steps: wait:<ms> | eval:<js> | shot:<path> | key:<Key> | keydown:<Key> | keyup:<Key>
 //        move:<dx>,<dy> | click | log:<js>
+//        tdown:<x>,<y> | tmove:<x>,<y> | tup:<x>,<y> | tap:<x>,<y>   (touch, needs --touch)
 // flags: --chrome=<path> --keep (do not close the browser) --port=9333 --gpu=swiftshader|default
+//        --mobile (mobile viewport + screen orientation) --touch (touch emulation) --dpr=2
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -126,9 +128,17 @@ async function main() {
   await send(
     ws,
     'Emulation.setDeviceMetricsOverride',
-    { width: Number(opt.w), height: Number(opt.h), deviceScaleFactor: 1, mobile: false },
+    {
+      width: Number(opt.w), height: Number(opt.h),
+      deviceScaleFactor: opt.dpr ? Number(opt.dpr) : (opt.mobile ? 2 : 1),
+      mobile: !!opt.mobile,
+      ...(opt.mobile ? { screenOrientation: { type: 'landscapePrimary', angle: 90 } } : {}),
+    },
     sessionId
   );
+  if (opt.touch) {
+    await send(ws, 'Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 }, sessionId);
+  }
   if (opt.url) await send(ws, 'Page.navigate', { url: opt.url }, sessionId);
 
   const logs = [];
@@ -188,6 +198,18 @@ async function main() {
       const [x, y] = (rest || `${opt.w / 2},${opt.h / 2}`).split(',').map(Number);
       await send(ws, 'Input.dispatchMouseEvent', { type: 'mousePressed', x, y, button: 'left', clickCount: 1 }, sessionId);
       await send(ws, 'Input.dispatchMouseEvent', { type: 'mouseReleased', x, y, button: 'left', clickCount: 1 }, sessionId);
+    } else if (kind === 'tdown' || kind === 'tmove' || kind === 'tup' || kind === 'tap') {
+      const [x, y] = (rest || `${opt.w / 2},${opt.h / 2}`).split(',').map(Number);
+      const point = { x, y, id: 1, radiusX: 2, radiusY: 2, force: 1 };
+      if (kind === 'tdown' || kind === 'tap') {
+        await send(ws, 'Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [point] }, sessionId);
+      }
+      if (kind === 'tmove') {
+        await send(ws, 'Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [point] }, sessionId);
+      }
+      if (kind === 'tup' || kind === 'tap') {
+        await send(ws, 'Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }, sessionId);
+      }
     }
   }
 

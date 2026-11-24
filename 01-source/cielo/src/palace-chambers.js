@@ -1450,12 +1450,14 @@ function fountain(b, cx, y, cz, r, s, ctx) {
   });
   if (ctx && ctx.lanterns) ctx.lanterns.push({ p: [cx, y + 0.9, cz], size: 2.0 * k, rot: 0, alpha: 0.26, shape: 1, col: mixc(C.cloudLit, C.glass, 0.45) });
 }
-// ============================================================== COSMOS KIT (round 9)
-// The salon's painted ceiling used to be a flat navy sky with white squares. It is now a
+// ============================================================== COSMOS KIT (round 9 / 10)
+// The salon's painted ceiling used to be a flat navy sky with white squares. It became a
 // COLOURED COSMOS: the whole ceiling is a smooth multi-hue nebula field (one Gouraud grid,
-// so no camera angle ever sees a single flat navy), with cloud banks, a galaxy band with
-// two spiral arms and a radiant core, ~300 coloured stars and comets, all inside a heavy
-// gold frame with rosettes.
+// so no camera angle ever sees a single flat navy), with soft cloud banks, a dense field
+// of small stars along a faint milky way, a dozen brilliant stars, gold constellations and
+// two meteors, all inside a heavy gold frame with rosettes. Round 10 replaced the wide
+// translucent galaxy band (it read as plastic film stuck to the ceiling) with the star-
+// chart treatment borrowed from the observatory's dome.
 // The blank west wall becomes the "Cabinet of Cosmic Curiosities": seven gilded niches on
 // a symmetric rhythm, each exhibit grounded on a stepped plinth, under a vitrine whose
 // posts / side panes / canopy are MI.glass-class; a framed star-chart gallery, a
@@ -1535,183 +1537,232 @@ function wblob(b, cu, cy, ru, rv, seg, colIn, colOut, w, rot) {
 }
 
 // ---------------------------------------------------------------- the ceiling
-const STAR_N = 300;
+// Round 10: the round-9 "coloured cosmos" read as a painted tent. The galaxy band was
+// built from wide translucent ribbons (a 3.2 m wash, a 1.3 m inner lane, a hot 0.5 m
+// centre line, a dark dust lane and two spiral arms) and its hard edges met the painted
+// field like plastic film stuck to the ceiling. The rebuilt sky follows the observatory's
+// star chart instead (glass-orbital.js skyChart): a deep indigo field, soft nebula
+// patches built from many small fading discs + coloured dust, a dense field of small
+// stars whose density swells along a barely visible milky way, a dozen brilliant stars
+// with a soft halo and a four-ray cross flare, three gold constellations, two meteors.
+// No wide flat bands.
+const STAR_N = 880;                        // painted star points (the check's metric)
 const CEIL_CLOUDS = [
-  [0.20, 0.27, 4.4, 'rose'], [0.62, 0.20, 3.6, 'teal'], [0.44, 0.58, 4.0, 'magenta'],
-  [0.82, 0.68, 3.8, 'gold'], [0.16, 0.70, 3.6, 'violet'], [0.66, 0.87, 3.1, 'amber'],
-  [0.36, 0.09, 3.0, 'cyan'], [0.55, 0.44, 2.5, 'ice'],
+  [0.20, 0.26, 3.6, 'rose'], [0.58, 0.15, 3.1, 'teal'], [0.40, 0.55, 3.4, 'violet'],
+  [0.80, 0.40, 3.0, 'gold'], [0.09, 0.62, 2.8, 'magenta'], [0.66, 0.74, 3.1, 'cyan'],
+  [0.30, 0.86, 2.7, 'amber'], [0.91, 0.78, 2.6, 'ice'], [0.52, 0.32, 2.4, 'magenta'],
+  [0.62, 0.57, 2.5, 'ice'],
 ];
+// the faint milky-way line and the brilliant stars, in ceiling (t, s) coordinates
+const galS = (t) => 0.30 + 0.40 * t + 0.035 * Math.sin(t * 4.7);
+// [t, s, palette key, size multiplier]; the figures below are index chains into this
+const BRIGHT = [
+  [0.07, 0.34, 'ice', 1.15], [0.16, 0.31, 'gold', 1.00], [0.26, 0.50, 'cyan', 1.05],
+  [0.35, 0.45, 'white', 1.55], [0.44, 0.55, 'rose', 1.00], [0.55, 0.48, 'gold', 1.25],
+  [0.64, 0.62, 'white', 1.05], [0.72, 0.53, 'cyan', 1.10], [0.81, 0.66, 'ice', 1.00],
+  [0.90, 0.60, 'gold', 0.95], [0.50, 0.36, 'violet', 0.90], [0.22, 0.62, 'amber', 0.85],
+  [0.70, 0.72, 'rose', 0.85], [0.40, 0.25, 'white', 0.95],
+];
+const CONSTELL = [[0, 1, 2, 3], [5, 6, 7, 8], [10, 4, 11]];
+const M_LINE = [0.440, 0.00];              // gold constellation paint: bright, below bloom
+
+// A soft round nebula patch: two Gouraud rings that fade exactly into the field colour
+// underneath, so a cloud never shows a hard rim (the round-9 altitude blobs did).
+function ceilPatch(b, yy, cx, cz, rad, col, F, seg, ph) {
+  const cIn = mixc(F, col, 0.62), cMid = mixc(F, col, 0.34);
+  const rmod = (a) => 1 + 0.18 * Math.sin(a * 3 + ph) + 0.11 * Math.sin(a * 5 - ph * 1.7) +
+    0.05 * Math.sin(a * 9 + ph * 2.3);
+  for (let k = 0; k < seg; k++) {
+    const a0 = (k / seg) * TAU, a1 = ((k + 1) / seg) * TAU;
+    const m0 = rmod(a0), m1 = rmod(a1);
+    const Q = (a, m, rr) => [cx + Math.cos(a) * rad * rr * m, yy, cz + Math.sin(a) * rad * rr * m];
+    b.quadc(Q(a1, m1, 0.48), Q(a0, m0, 0.48), Q(a0, m0, 1), Q(a1, m1, 1), cMid, cMid, F, F, MX.cloud);
+    b.quadc(Q(a1, m1, 0.06), Q(a0, m0, 0.06), Q(a0, m0, 0.48), Q(a1, m1, 0.48),
+      cIn, cIn, cMid, cMid, MX.cloudHi);
+  }
+}
+// A soft radial halo under a brilliant star: bright tint at the centre, the field colour
+// at the rim, so it reads as glow instead of a painted disc.
+function ceilHalo(b, yy, cx, cz, rad, col, F, seg) {
+  const c0 = mixc(F, col, 0.80), c1 = mixc(F, col, 0.46);
+  for (let k = 0; k < seg; k++) {
+    const a0 = (k / seg) * TAU, a1 = ((k + 1) / seg) * TAU;
+    const Q = (a, rr) => [cx + Math.cos(a) * rad * rr, yy, cz + Math.sin(a) * rad * rr];
+    b.quadc(Q(a1, 0.09), Q(a0, 0.09), Q(a0, 0.42), Q(a1, 0.42), c0, c0, c1, c1, MX.glow);
+    b.quadc(Q(a1, 0.42), Q(a0, 0.42), Q(a0, 1), Q(a1, 1), c1, c1, F, F, MX.cloudHi);
+  }
+}
+// A four-ray cross flare lying in the ceiling plane, fading into the field.
+function ceilCross(b, yy, cx, cz, len, wid, col, F, rot) {
+  for (let k = 0; k < 4; k++) {
+    const a = rot + (k / 4) * TAU, dx = Math.cos(a), dz = Math.sin(a);
+    const px = -dz, pz = dx;
+    const bx0 = cx - dx * len * 0.12, bz0 = cz - dz * len * 0.12;
+    b.quadc([cx + dx * len + px * wid * 0.05, yy, cz + dz * len + pz * wid * 0.05],
+      [bx0 + px * wid, yy, bz0 + pz * wid],
+      [bx0 - px * wid, yy, bz0 - pz * wid],
+      [cx + dx * len - px * wid * 0.05, yy, cz + dz * len - pz * wid * 0.05],
+      F, col, col, F, MX.star);
+  }
+}
+// A thin painted constellation line, flat on the ceiling, normal down.
+function ceilLine(b, yy, p0, p1, w, col, mat) {
+  const dx = p1[0] - p0[0], dz = p1[1] - p0[1], L = Math.hypot(dx, dz) || 1;
+  const px = (-dz / L) * w, pz = (dx / L) * w;
+  b.quadc([p1[0] + px, yy, p1[1] + pz], [p0[0] + px, yy, p0[1] + pz],
+    [p0[0] - px, yy, p0[1] - pz], [p1[0] - px, yy, p1[1] - pz], col, col, col, col, mat);
+}
+// A meteor: a bright head and a tapered tail that fades into the field.
+function ceilMeteor(b, yy, cx, cz, ang, len, col, F) {
+  const dx = Math.cos(ang), dz = Math.sin(ang), px = -dz, pz = dx;
+  for (let i = 0; i < 5; i++) {
+    const r0 = i / 5, r1 = (i + 1) / 5;
+    const L0 = len * r0, L1 = len * r1;
+    const w0 = 0.085 * (1 - r0) + 0.008, w1 = 0.085 * (1 - r1) + 0.008;
+    const c0 = mixc(F, col, 0.96 - r0 * 0.86), c1 = mixc(F, col, 0.96 - r1 * 0.86);
+    b.quadc([cx - dx * L1 + px * w1, yy, cz - dz * L1 + pz * w1],
+      [cx - dx * L0 - px * w0, yy, cz - dz * L0 - pz * w0],
+      [cx - dx * L0 + px * w0, yy, cz - dz * L0 + pz * w0],
+      [cx - dx * L1 - px * w1, yy, cz - dz * L1 - pz * w1],
+      c1, c0, c0, c1, MX.star);
+  }
+  qStar(b, yy - 0.002, cx, cz, 0.15, ang, mixc(CX.white, col, 0.4), MX.starHi);
+}
+
 function cosmosCeiling(b, x0, x1, z0, z1, y, R) {
   const FW = x1 - x0, FD = z1 - z0;
   const NW = 22, NV = 28;                                  // field grid (Gouraud colours)
   const CS = [
-    [0.17, 0.25, 0.30, CX.rose, 1.00], [0.74, 0.21, 0.26, CX.teal, 0.94],
-    [0.44, 0.57, 0.29, CX.magenta, 1.00], [0.86, 0.70, 0.24, CX.gold, 0.78],
-    [0.12, 0.74, 0.24, CX.violet, 0.86], [0.60, 0.07, 0.22, CX.cyan, 0.70],
-    [0.30, 0.90, 0.20, CX.amber, 0.62],
+    [0.17, 0.25, 0.38, CX.rose, 0.84], [0.74, 0.21, 0.34, CX.teal, 0.76],
+    [0.44, 0.57, 0.36, CX.magenta, 0.86], [0.86, 0.70, 0.30, CX.gold, 0.60],
+    [0.12, 0.74, 0.30, CX.violet, 0.74], [0.60, 0.07, 0.28, CX.cyan, 0.56],
+    [0.30, 0.90, 0.26, CX.amber, 0.50],
   ];
-  const galS = (t) => 0.36 + 0.30 * t;
   const fieldCol = (t, s) => {
     let col = CX.base, lum = 0;
     for (let i = 0; i < CS.length; i++) {
-      const q = CS[i], dt = t - q[0], ds = s - q[1], rr = q[2] * 1.18;
+      const q = CS[i], dt = t - q[0], ds = s - q[1], rr = q[2];
       const wgt = Math.exp(-(dt * dt + ds * ds) / (rr * rr)) * q[4];
       if (wgt < 0.012) continue;
       lum += wgt;
-      col = mixc(col, q[3], Math.min(0.84, wgt * 0.84));
+      col = mixc(col, q[3], Math.min(0.78, wgt * 0.80));
     }
-    const g = Math.exp(-Math.pow((s - galS(t)) / 0.105, 2));
-    if (g > 0.02) { col = mixc(col, CX.ice, Math.min(0.34, g * 0.38)); lum += g * 0.9; }
+    // a very soft brightening along the milky way (belief in the band, no band geometry)
+    const g = Math.exp(-Math.pow((s - galS(t)) / 0.115, 2));
+    if (g > 0.02) { col = mixc(col, CX.ice, Math.min(0.16, g * 0.19)); lum += g * 0.7; }
     const edge = Math.min(1, Math.min(t, 1 - t) * 4.8) * Math.min(1, Math.min(s, 1 - s) * 4.8);
-    return { c: mulc(col, 0.82 + 0.18 * edge), l: lum };
+    return { c: mulc(col, 0.80 + 0.20 * edge), l: lum };
   };
   for (let j = 0; j < NV; j++) {
     for (let i = 0; i < NW; i++) {
       const t0 = i / NW, t1 = (i + 1) / NW, s0 = j / NV, s1 = (j + 1) / NV;
-      const A = fieldCol(t0, s0), B = fieldCol(t1, s0), Cc = fieldCol(t1, s1), Dd = fieldCol(t0, s1);
+      const A = fieldCol(t0, s0), Bc = fieldCol(t1, s0), Cc = fieldCol(t1, s1), Dd = fieldCol(t0, s1);
       b.quadc([x0 + FW * t0, y, z0 + FD * s0], [x0 + FW * t1, y, z0 + FD * s0],
         [x0 + FW * t1, y, z0 + FD * s1], [x0 + FW * t0, y, z0 + FD * s1],
-        A.c, B.c, Cc.c, Dd.c, MX.field);
+        A.c, Bc.c, Cc.c, Dd.c, MX.field);
     }
   }
-  // ---- cloud banks: an outer ring that fades into the field, a body, a bright core ----
-  const ring = (cwx, czw, rad, rIn, rOut, colIn, colOut, mat, seg, yOff) => {
-    const yy = y - yOff;
-    const rmod = (a) => 1 + 0.20 * Math.sin(a * 3 + rad * 7) + 0.12 * Math.sin(a * 5 - rad * 11);
-    for (let k = 0; k < seg; k++) {
-      const a0 = (k / seg) * TAU, a1 = ((k + 1) / seg) * TAU;
-      const m0 = rmod(a0), m1 = rmod(a1);
-      b.quadc(
-        [cwx + Math.cos(a1) * rIn * m1, yy, czw + Math.sin(a1) * rIn * m1],
-        [cwx + Math.cos(a0) * rIn * m0, yy, czw + Math.sin(a0) * rIn * m0],
-        [cwx + Math.cos(a0) * rOut * m0, yy, czw + Math.sin(a0) * rOut * m0],
-        [cwx + Math.cos(a1) * rOut * m1, yy, czw + Math.sin(a1) * rOut * m1],
-        colIn, colIn, colOut, colOut, mat);
-    }
-  };
-  const cloud = (t, s, rad, col) => {
-    const cwx = x0 + FW * t, czw = z0 + FD * s;
-    const F = fieldCol(t, s).c;                       // the field colour underneath
-    ring(cwx, czw, rad, rad * 0.28, rad, mixc(col, F, 0.50), F, MX.cloud, 28, 0.010);
-    ring(cwx, czw, rad, rad * 0.04, rad * 0.34, mixc(col, F, 0.05), mixc(col, F, 0.54), MX.cloudHi, 20, 0.014);
-    const yy = y - 0.018;
-    for (let k = 0; k < 9; k++) {
-      const a0 = (k / 9) * TAU, a1 = ((k + 1) / 9) * TAU;
-      b.tri([cwx, yy, czw], [cwx + Math.cos(a1) * rad * 0.10, yy, czw + Math.sin(a1) * rad * 0.10],
-        [cwx + Math.cos(a0) * rad * 0.10, yy, czw + Math.sin(a0) * rad * 0.10], mulc(col, 1.15), MX.core, DN, DN, DN);
-    }
-  };
+  // ---- soft nebulae: clusters of small fading patches + coloured dust ----
+  const NEB = [CX.rose, CX.teal, CX.magenta, CX.gold, CX.violet, CX.cyan, CX.amber, CX.ice];
+  const dust = [];
+  let pIdx = 0;
   for (let i = 0; i < CEIL_CLOUDS.length; i++) {
     const q = CEIL_CLOUDS[i];
-    cloud(q[0], q[1], q[2], CX[q[3]]);
-  }
-  // ---- galaxy band: a wide wash, a bright inner lane, a hot centre line ----
-  const gp = [];
-  for (let i = 0; i <= 24; i++) {
-    const t = 0.02 + 0.96 * (i / 24);
-    gp.push([x0 + FW * t, z0 + FD * (galS(t) + 0.035 * Math.sin(t * 7.3))]);
-  }
-  const strip = (pts, w0, w1, colA, colB, mat, yOff) => {
-    const yy = y - yOff, n = pts.length;
-    // one offset pair per sample point, so neighbouring segments share their edge exactly
-    const Lp = [], Rp = [];
-    for (let i = 0; i < n; i++) {
-      const pa = pts[Math.max(0, i - 1)], pb = pts[Math.min(n - 1, i + 1)];
-      const dt = pb[0] - pa[0], ds = pb[1] - pa[1], len = Math.hypot(dt, ds) || 1;
-      const px = -ds / len, pz = dt / len, w = lerp(w0, w1, i / (n - 1));
-      Lp.push([pts[i][0] + px * w, yy, pts[i][1] + pz * w]);
-      Rp.push([pts[i][0] - px * w, yy, pts[i][1] - pz * w]);
+    const cx = x0 + FW * q[0], cz = z0 + FD * q[1], rad = q[2];
+    const base = CX[q[3]], second = NEB[(i * 3 + 2) % NEB.length];
+    const F = fieldCol(q[0], q[1]).c;
+    const nP = 8 + (i % 3);
+    for (let k = 0; k < nP; k++) {
+      const a = R() * TAU, rr = 0.66 * Math.sqrt(R()) * rad;
+      const pcx = cx + Math.cos(a) * rr, pcz = cz + Math.sin(a) * rr * 0.88;
+      const pr = rad * (0.20 + R() * 0.15);
+      const col = mixc(base, second, R() * 0.55);
+      ceilPatch(b, y - 0.012 - (pIdx % 14) * 0.00055, pcx, pcz, pr, col, F, 10, R() * TAU);
+      pIdx++;
     }
-    for (let i = 0; i < n - 1; i++) {
-      const cA = mixc(colA, colB, i / (n - 1)), cB = mixc(colA, colB, (i + 1) / (n - 1));
-      b.quadc(Lp[i], Rp[i], Rp[i + 1], Lp[i + 1], cA, cA, cB, cB, mat);
+    // a couple of brighter knots so each cloud has a lit centre
+    for (let k = 0; k < 2; k++) {
+      const a = R() * TAU, rr = 0.30 * Math.sqrt(R()) * rad;
+      const pr = rad * (0.10 + R() * 0.06);
+      ceilPatch(b, y - 0.012 - (pIdx % 14) * 0.00055, cx + Math.cos(a) * rr,
+        cz + Math.sin(a) * rr * 0.88, pr, mixc(base, CX.white, 0.35 + R() * 0.25), F, 8, R() * TAU);
+      pIdx++;
     }
+    // coloured dust suspended in the cloud
+    for (let k = 0; k < 14 + (i % 4) * 3; k++) {
+      const a = R() * TAU, rr = Math.sqrt(R()) * rad * 1.05;
+      dust.push([cx + Math.cos(a) * rr, cz + Math.sin(a) * rr * 0.88,
+        mixc(base, mixc(second, CX.white, R() * 0.65), R()), 0.026 + R() * 0.05]);
+    }
+  }
+  // ---- the brilliant stars: a soft halo and a four-ray cross flare each ----
+  const bright = [];
+  for (let i = 0; i < BRIGHT.length; i++) {
+    const q = BRIGHT[i];
+    const bcx = x0 + FW * q[0], bcz = z0 + FD * q[1];
+    const size = (0.50 + q[3] * 0.55) * (0.85 + 0.35 * R());
+    const col = mixc(CX[q[2]], CX.white, 0.22 + R() * 0.30);
+    const F = fieldCol(q[0], q[1]).c;
+    ceilHalo(b, y - 0.0206, bcx, bcz, size * (0.60 + 0.22 * R()), col, F, 12);
+    ceilCross(b, y - 0.0210, bcx, bcz, size * (0.60 + 0.25 * R()),
+      0.030 + R() * 0.012, col, F, R() * TAU);
+    bright.push({ x: bcx, z: bcz });
+  }
+  // ---- three gold constellation figures (thin lines between brilliant stars) ----
+  for (let g = 0; g < CONSTELL.length; g++) {
+    const chain = CONSTELL[g];
+    for (let k = 0; k < chain.length - 1; k++) {
+      const p0 = bright[chain[k]], p1 = bright[chain[k + 1]];
+      ceilLine(b, y - 0.0198, [p0.x, p0.z], [p1.x, p1.z], 0.042,
+        mixc(GOLD, CX.ice, 0.20), M_LINE);
+    }
+  }
+  // ---- star dust inside the nebulae ----
+  for (let i = 0; i < dust.length; i++) {
+    const d = dust[i];
+    qStar(b, y - 0.0214 - (i % 5) * 0.00018, d[0], d[1], d[3], (i * 2.399) % TAU, d[2], MX.star);
+  }
+  // ---- the star field: dense along the milky way, sparse across the rest ----
+  const BAND = [CX.ice, CX.white, mixc(CX.white, CX.cyan, 0.45), mixc(CX.white, CX.gold, 0.55),
+    mixc(CX.white, CX.rose, 0.38), mixc(CX.white, CX.violet, 0.48), CX.amber, CX.gold];
+  const FIELD = [CX.white, CX.ice, mixc(CX.white, CX.cyan, 0.5), mixc(CX.white, CX.violet, 0.45),
+    mixc(CX.white, CX.gold, 0.35)];
+  const NB = 540;                                    // stars strung along the lane
+  const NF = STAR_N - NB - dust.length;              // scattered stars over the whole field
+  let sIdx = 0;
+  const paintStar = (t, s, ss, col) => {
+    const yy = y - 0.0222 - (sIdx % 9) * 0.00024;
+    sIdx++;
+    qStar(b, yy, x0 + FW * t, z0 + FD * s, ss, (sIdx * 1.7) % TAU, col, MX.star);
   };
-  strip(gp, 3.2, 2.3, mulc(mixc(CX.violet, CX.magenta, 0.45), 0.88), mulc(mixc(CX.violet, CX.teal, 0.45), 0.88), MX.cloud, 0.020);
-  strip(gp, 1.30, 0.80, mulc(mixc(CX.teal, CX.cyan, 0.50), 0.74), mulc(mixc(CX.rose, CX.magenta, 0.35), 0.80), MX.cloudHi, 0.024);
-  strip(gp, 0.46, 0.26, mixc(CX.ice, CX.cyan, 0.18), mixc(CX.ice, CX.rose, 0.22), MX.core, 0.028);
-  // star dust: dense little stars strung along the lane
-  for (let i = 0; i < gp.length - 1; i++) {
-    const p0 = gp[i], p1 = gp[i + 1];
-    const dt = p1[0] - p0[0], ds = p1[1] - p0[1], L = Math.hypot(dt, ds) || 1;
-    const px = -ds / L, pz = dt / L;
-    for (let k = 0; k < 7; k++) {
-      const u = R(), v = (R() - 0.5) * 2.6;
-      const cx2 = p0[0] + dt * u + px * v, cz2 = p0[1] + ds * u + pz * v;
-      qStar(b, y - 0.029, cx2, cz2, 0.05 + R() * 0.07, R() * TAU,
-        k % 3 === 0 ? CX.gold : k % 3 === 1 ? CX.ice : CX.white, MX.star);
-    }
+  for (let i = 0; i < NB; i++) {
+    // one in four sits in the broad halo of the band, the rest hug the lane
+    const wide = i % 4 === 0;
+    const t = 0.015 + R() * 0.97;
+    const u = R() * 2 - 1;
+    const off = (u < 0 ? -1 : 1) * Math.pow(Math.abs(u), wide ? 1.4 : 2.2) * (wide ? 0.30 : 0.092);
+    let s = galS(t) + off;
+    if (s < 0.02) s = 0.02 + R() * 0.02;
+    if (s > 0.98) s = 0.98 - R() * 0.02;
+    const core = Math.exp(-Math.pow((s - galS(t)) / 0.05, 2));
+    const ss = (0.030 + Math.pow(R(), 2.3) * 0.125) * (1 + 0.5 * core);
+    paintStar(t, s, ss, mulc(BAND[(i * 3 + 1) % BAND.length], 0.72 + R() * 0.28));
   }
-  // a dark dust lane running alongside the bright body
-  {
-    const dp = gp.map((p, i) => {
-      const pa = gp[Math.max(0, i - 1)], pb = gp[Math.min(gp.length - 1, i + 1)];
-      const dt = pb[0] - pa[0], ds = pb[1] - pa[1], L = Math.hypot(dt, ds) || 1;
-      return [p[0] - (ds / L) * 0.72, p[1] + (dt / L) * 0.72];
-    });
-    strip(dp, 0.55, 0.42, mulc(CX.indigoV, 0.90), mulc(CX.violet, 0.72), MX.cloud, 0.016);
+  for (let i = 0; i < NF; i++) {
+    const t = 0.02 + R() * 0.96, s = 0.02 + R() * 0.96;
+    const ss = 0.028 + Math.pow(R(), 2.6) * 0.095;
+    paintStar(t, s, ss, mulc(FIELD[(i * 3 + 2) % FIELD.length], 0.66 + R() * 0.30));
   }
-  // ---- spiral arms out of the core ----
-  const bc = [x0 + FW * 0.36, z0 + FD * 0.36];
-  for (const sd of [-1, 1]) {
-    const pts = [];
-    for (let i = 0; i <= 16; i++) {
-      const th = i * 0.235, rr = 0.85 + i * 0.44, off = sd > 0 ? 0 : Math.PI;
-      pts.push([bc[0] + Math.cos(th + off) * rr, bc[1] + Math.sin(th + off) * rr * 0.84]);
-    }
-    strip(pts, 0.40, 0.08, mixc(CX.ice, CX.cyan, 0.4), mixc(CX.violet, CX.rose, 0.4), MX.cloudHi, 0.022);
+  // ---- the brilliant stars themselves, on top of their flares ----
+  for (let i = 0; i < BRIGHT.length; i++) {
+    const q = BRIGHT[i];
+    qStar(b, y - 0.0248, x0 + FW * q[0], z0 + FD * q[1], 0.105 * q[3], R() * TAU,
+      mixc(CX[q[2]], CX.white, 0.35 + 0.30 * R()), MX.starHi);
   }
-  // ---- the radiant core: a hot disc, 24 rays ----
-  {
-    const cy2 = y - 0.034;
-    for (let k = 0; k < 16; k++) {
-      const a0 = (k / 16) * TAU, a1 = ((k + 1) / 16) * TAU;
-      b.tri([bc[0], cy2, bc[1]], [bc[0] + Math.cos(a1) * 0.52, cy2, bc[1] + Math.sin(a1) * 0.52],
-        [bc[0] + Math.cos(a0) * 0.52, cy2, bc[1] + Math.sin(a0) * 0.52], mixc(CX.ice, CX.gold, 0.30), MX.glow, DN, DN, DN);
-    }
-    for (let k = 0; k < 24; k++) {
-      const a = (k / 24) * TAU + 0.13, dxu = Math.cos(a), dzu = Math.sin(a);
-      const r1 = k % 3 === 0 ? 3.0 : 1.9, px = -dzu, pz = dxu;
-      b.quad([bc[0] + px * 0.10, cy2, bc[1] + pz * 0.10],
-        [bc[0] + dxu * r1 + px * 0.02, cy2, bc[1] + dzu * r1 + pz * 0.02],
-        [bc[0] + dxu * r1 - px * 0.02, cy2, bc[1] + dzu * r1 - pz * 0.02],
-        [bc[0] - px * 0.10, cy2, bc[1] - pz * 0.10],
-        k % 4 === 0 ? CX.ice : mixc(CX.gold, CX.ice, 0.5), MX.star, DN);
-    }
-    b.push(mat4(bc[0], y - 0.038, bc[1]));
-    ellipsoid(b, 0.20, 0.02, 0.20, 7, 3, mixc(CX.white, CX.gold, 0.4), MX.glowHi);
-    b.pop();
-  }
-  // ---- coloured stars (0.05..0.14 m) + a dozen brilliant ones with cross flares ----
-  const SC = [CX.white, CX.ice, CX.gold, CX.rose, CX.cyan, CX.amber];
-  for (let i = 0; i < STAR_N; i++) {
-    const t = R(), s = R(), ss = 0.05 + R() * 0.09;
-    qStar(b, y - 0.031, x0 + FW * t, z0 + FD * s, ss, R() * TAU, SC[i % SC.length], MX.star);
-  }
-  for (let i = 0; i < 12; i++) {
-    const t = 0.06 + ((i * 0.083) % 0.9), s = 0.08 + ((i * 0.137) % 0.85);
-    const px = x0 + FW * t, pz = z0 + FD * s, yy = y - 0.035;
-    qYn(b, yy, px - 0.13, px + 0.13, pz - 0.022, pz + 0.022, CX.white, MX.starHi);
-    qYn(b, yy, px - 0.022, px + 0.022, pz - 0.13, pz + 0.13, CX.white, MX.starHi);
-    qStar(b, yy, px, pz, 0.075, 0.4, CX.ice, MX.glowHi);
-  }
-  // ---- comets: a bright head and a tapered tail ----
-  const MET = [[0.72, 0.88, -0.6, 1.0], [0.28, 0.16, 2.4, 0.8], [0.90, 0.36, -2.0, 0.7], [0.52, 0.80, 0.9, 0.6], [0.14, 0.46, -1.2, 0.55]];
-  for (let m = 0; m < MET.length; m++) {
-    const t0 = MET[m][0], s0 = MET[m][1], ang = MET[m][2], kk = MET[m][3];
-    const hx = x0 + FW * t0, hz = z0 + FD * s0, dxu = Math.cos(ang), dzu = Math.sin(ang);
-    const yy = y - 0.039, px = -dzu, pz = dxu;
-    for (let i = 0; i < 5; i++) {
-      const ra = i / 5, rb = (i + 1) / 5;
-      const L0 = 0.5 + ra * 3.2 * kk, L1 = 0.5 + rb * 3.2 * kk;
-      const wa = 0.15 * (1 - ra) + 0.02, wb = 0.15 * (1 - rb) + 0.02;
-      b.quad([hx - dxu * L0 + px * wa, yy, hz - dzu * L0 + pz * wa],
-        [hx - dxu * L1 + px * wb, yy, hz - dzu * L1 + pz * wb],
-        [hx - dxu * L1 - px * wb, yy, hz - dzu * L1 - pz * wb],
-        [hx - dxu * L0 - px * wa, yy, hz - dzu * L0 - pz * wa],
-        i < 2 ? CX.ice : mixc(CX.ice, CX.violet, 0.45 + 0.10 * i), MX.star, DN);
-    }
-    qYn(b, yy, hx - 0.11, hx + 0.11, hz - 0.11, hz + 0.11, CX.white, MX.starHi);
+  // ---- two meteors: a bright head and a tapered tail ----
+  for (const [t, s, ang, kk] of [[0.63, 0.16, 2.55, 1.0], [0.24, 0.72, 1.05, 0.72]]) {
+    ceilMeteor(b, y - 0.0256, x0 + FW * t, z0 + FD * s, ang, 0.8 + 2.4 * kk,
+      mixc(CX.ice, CX.white, 0.5), fieldCol(t, s).c);
   }
   // ---- painted border + heavy gold frame with rosettes (kept and strengthened) ----
   const BX = 0.34, fr = 0.15;

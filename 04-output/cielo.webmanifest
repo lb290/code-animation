@@ -1,0 +1,36 @@
+{
+  "name": "天空鲸城 · CIELO",
+  "short_name": "天空鲸城",
+  "description": "手写 WebGL2 的可游览幻想都市：大理石露台、玻璃宫、大教堂、巨鲸与鲸背城。",
+  "lang": "zh-CN",
+  "start_url": "./CIELO.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#9fd0ee",
+  "theme_color": "#4d86c4",
+  "categories": [
+    "games",
+    "entertainment"
+  ],
+  "icons": [
+    {
+      "src": "../assets/pwa/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "../assets/pwa/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "../assets/pwa/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

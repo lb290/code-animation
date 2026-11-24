@@ -77,6 +77,8 @@ export class Camera {
     this.shake = 0;
     this.speedMul = 1;
     this.viewIndex = 0;
+    // round 11: 触屏摇杆输入（-1..1，x=左右平移，z=前后，y=升降）。桌面永远保持 0。
+    this.touch = { x: 0, z: 0, y: 0 };
   }
   get forward() {
     const cp = Math.cos(this.pitch), sp = Math.sin(this.pitch);
@@ -193,11 +195,20 @@ export class Camera {
     if (this.keys.has('KeyA')) ax -= 1;
     if (this.keys.has('KeyE') || this.keys.has('Space')) ay += 1;
     if (this.keys.has('KeyQ')) ay -= 1;
+    // round 11: 触屏摇杆是模拟量，按下越远走得越快（键盘仍为满速）
+    const t = this.touch;
+    let tmag = 0;
+    if (t && (t.x || t.z || t.y)) {
+      const tx = clamp(t.x, -1, 1), tz = clamp(t.z, -1, 1), ty = clamp(t.y, -1, 1);
+      ax += tx; az += tz; ay += ty;
+      tmag = Math.min(1, Math.hypot(tx, tz, ty));
+    }
     const fast = this.keys.has('ShiftLeft') || this.keys.has('ShiftRight') ? 3.4 : 1;
     const speed = 30 * fast * this.speedMul;
     const want = add(add(vs(r, ax), vs(u, ay)), vs(f, az));
     const wl = Math.hypot(want[0], want[1], want[2]) || 1;
-    const target = vs(want, speed / wl);
+    const mag = tmag > 0 ? tmag : Math.min(1, Math.hypot(ax, ay, az));
+    const target = vs(want, (speed * mag) / wl);
     for (let i = 0; i < 3; i++) {
       this.vel[i] = damp(this.vel[i], target[i], 7, dt);
       this.pos[i] += this.vel[i] * dt;

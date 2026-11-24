@@ -8,6 +8,7 @@
 //   · 按 U 可以打开"预读"（显示全部正文，持久化），给不想慢慢逛的人用。
 //   · 进度（已抵达 N / 总 M）与预读开关存在 localStorage。
 import { AREAS, LORE } from './lore.js';
+import { SCENE } from './lore-scene.js';
 import { L } from './layout.js';
 
 const KEY = 'cielo.almanac.v1';
@@ -24,7 +25,7 @@ function zoneCentre(entry) {
   return null;
 }
 
-export function createGuide({ cam, toast }) {
+export function createGuide({ cam, toast, cardMs = 9000 }) {
   const found = new Set();   // 已抵达
   const fresh = new Set();   // 已抵达但还没在抄本里翻开
   let spoiler = false;
@@ -80,13 +81,14 @@ export function createGuide({ cam, toast }) {
     cardTitle.textContent = x.entry.title;
     cardEn.textContent = x.entry.en;
     cardQuote.textContent = x.entry.quote;
+    cardEl.dataset.i = String(x.i);
     cardEl.classList.add('show');
     clearTimeout(cardTimer);
     cardTimer = setTimeout(() => {
       cardEl.classList.remove('show');
       const next = pending.shift();
       if (next) setTimeout(() => showCard(next), 750);
-    }, 9000);
+    }, cardMs);
   }
 
   // ------------------------------------------------------------ 抄本渲染
@@ -124,8 +126,13 @@ export function createGuide({ cam, toast }) {
       '<h2>' + e.title + '</h2>' +
       '<div class="a-en">' + e.en + '</div>' +
       '<blockquote class="a-quote">' + e.quote + '</blockquote>';
+    // 第十一轮：先「景」后「故事」——建筑/场景的详细介绍，再是这一页的来历
+    const scene = SCENE[e.id] || [];
+    const sceneHtml = has && scene.length
+      ? '<section class="a-sec scene"><h4>景 · 建筑与场景</h4>' + scene.map((p) => '<p>' + p + '</p>').join('') + '</section>'
+      : '';
     const body = has
-      ? e.body.map((p) => '<p>' + p + '</p>').join('')
+      ? sceneHtml + '<section class="a-sec story"><h4>故事 · 记载</h4>' + e.body.map((p) => '<p>' + p + '</p>').join('') + '</section>'
       : '<p class="a-locked">这一页还没有显影。<br>抵达' + e.title + '之后，抄本会自己把字写上去。（也可以按 U 预读全部记载。）</p>';
     const foot = '<div class="a-go"><b>去这里</b>　' + (e.go || '') + '</div>' +
       (has && !found.has(e.id) ? '<div class="a-go">预读 · 你还没有真正抵达过这里</div>' : '');
@@ -172,6 +179,12 @@ export function createGuide({ cam, toast }) {
 
   function close() { if (open) setOpen(false); }
   function nav(d) { if (open) select(sel + d); }
+  // 触屏入口：点抵达卡片 / 触屏「去这里」直接翻到那一页
+  function openAt(i) {
+    sel = ((Number(i) % total) + total) % total;
+    if (!open) setOpen(true);
+    else refresh();
+  }
   function toggleSpoiler() {
     spoiler = !spoiler;
     save();
@@ -204,6 +217,16 @@ export function createGuide({ cam, toast }) {
     if (open) refresh();
   }
 
+  // 触屏：点卡片 = 打开抄本对应页；抄本右上角 ✕ 与底栏按钮（桌面无键盘时也能用）
+  cardEl?.addEventListener('click', () => {
+    const i = Number(cardEl.dataset.i);
+    if (Number.isFinite(i)) openAt(i);
+  });
+  $('gb-close')?.addEventListener('click', close);
+  $('gb-prev')?.addEventListener('click', () => nav(-1));
+  $('gb-next')?.addEventListener('click', () => nav(1));
+  $('gb-spoiler')?.addEventListener('click', () => toggleSpoiler());
+
   function update(pos, dt) {
     tick += dt;
     if (tick < 0.22) return;
@@ -226,7 +249,7 @@ export function createGuide({ cam, toast }) {
   });
 
   return {
-    update, toggle, close, nav, toggleSpoiler, unlockSpecial, unlockAll, hideCard,
+    update, toggle, close, nav, openAt, toggleSpoiler, unlockSpecial, unlockAll, hideCard,
     isOpen: () => open,
     count: () => foundCount(),
     total,

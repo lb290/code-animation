@@ -3,6 +3,7 @@
 // body paragraph count/length, and that every zone centre is actually near the
 // view it claims. Run by tools/checkall.mjs.
 import { AREAS, LORE } from '../src/lore.js';
+import { SCENE } from '../src/lore-scene.js';
 import { L } from '../src/layout.js';
 
 const fail = [];
@@ -55,6 +56,20 @@ for (const e of LORE) {
   }
 }
 
+// 第十一轮：「景」文案必须覆盖每一页，且先建筑后故事的排版才有意义
+let sceneChars = 0;
+for (const e of LORE) {
+  const s = SCENE[e.id];
+  if (!s) { fail.push((e.id || '?') + ': missing scene text (run tools/build-lore-scene.mjs)'); continue; }
+  if (!Array.isArray(s) || s.length < 2 || s.length > 4) fail.push(e.id + ': scene must have 2-4 paragraphs');
+  for (const p of s) {
+    if (typeof p !== 'string' || p.trim().length < 40) fail.push(e.id + ': a scene paragraph is too short');
+  }
+  sceneChars += s.join('').length;
+}
+const extra = Object.keys(SCENE).filter((id) => !ids.has(id));
+if (extra.length) fail.push('scene text for unknown ids: ' + extra.join(', '));
+
 if (LORE.length < 24) fail.push('only ' + LORE.length + ' entries — the almanac should cover the whole city');
 if (zoneCount < LORE.length - 2) warn.push('only ' + zoneCount + ' arrival zones for ' + LORE.length + ' entries');
 
@@ -67,4 +82,4 @@ if (fail.length) {
   process.exit(1);
 }
 console.log('PASS  lore: ' + LORE.length + ' entries / ' + zoneCount + ' arrival zones / ' + AREAS.length +
-  ' areas  [' + perArea + ']  views=' + L.views.length + '  deterministic data');
+  ' areas  [' + perArea + ']  scene=' + Object.keys(SCENE).length + ' pages / ' + sceneChars + ' chars  views=' + L.views.length + '  deterministic data');
