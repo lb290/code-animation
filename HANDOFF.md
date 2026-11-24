@@ -1,3 +1,43 @@
+# 交接 · 天空鲸城「CIELO」（2026-11-24 晚，第十一轮：安卓平板 + 抄本「景」+ 沙龙星空）
+
+> **2026-11-24 · 第十一轮**：用户：「你作为产品负责人兼技术，继续完善天空鲸城。① 提交并推送代码；② 规定好工作记录格式，为了新开会话也能知道项目情况；③ 天空鲸城需要支持安卓平板使用，局域网连接电脑访问或安卓平板独立运行都可以；④ 你再列出两个产品改进方案并推进一个。」
+> 中途追加：⑤「游览中，把建筑的介绍详细……这样标准的介绍就挺好。然后才是跟这个地点有关的故事。」⑥「音乐沙龙的天花板的银河不好看。星象剧场的星空就挺好看的。」
+> 施工合同：[03-notes/cielo-round11-android-brief.md](03-notes/cielo-round11-android-brief.md)；记录规范：[03-notes/worklog-format.md](03-notes/worklog-format.md)；产品方案：[03-notes/cielo-product-ideas.md](03-notes/cielo-product-ideas.md)。
+
+## 第十一轮现状（先读这段）
+
+- **安卓平板/手机触屏**（新模块 `src/touch.js`，只在 `html.touch` 下启用）：左半屏按住 = 模拟量摇杆（推得越远越快），右半屏拖动 = 环视（`cam.onMouse` 增益 1.65），右侧「升/降」按住升降，底部 11 个按钮（巡游 / ‹景 / 景› / 导览 / 昼夜 / 烟花 / 摄影 / 明信片 / 露台 / 帮助 / 全屏）。触屏不再请求 pointer lock；桌面端一条触摸事件都不注册。
+- **移动质量档**（`src/main.js` 顶部 `TIERS`）：high（阴影开、倍率 0.55–1.0）/ mid / low（关阴影、倍率 0.40–0.68、点光 8、关 FXAA）。触屏默认 low，桌面默认 high；`?q=low|mid|high` 可强制；开局 150 帧按实测帧时间自动调一档（>40 ms 降 low，触屏 <18 ms 升 mid）。
+- **PWA / 平板独立运行**：`04-output/cielo.webmanifest` + `cielo-sw.js` + `assets/pwa/icon-{192,512,maskable-512}.png`（图标是鲸背城机位渲染出来的）。GitHub Pages（https）可「添加到主屏幕」，装好后断网可开；`?sw0` 可关。局域网仍是 `node tools/serve.mjs --host=0.0.0.0`（会打印 `http://192.168.x.x:8099/CIELO.html`），http 下浏览器不允许安装/离线缓存，页面照常能玩。
+- **抄本「景 → 故事」**：新增 `src/lore-scene.js`（**自动生成**，31 页 / 10,717 字，单一事实源 `03-notes/lore-scene/group-*.json`，用 `node tools/build-lore-scene.mjs` 合成）。guide.js 渲染顺序：标题/引言 → 「景 · 建筑与场景」2–4 段 → 「故事 · 记载」原有 body → 去这里。触屏抄本加了 ✕、上一页/下一页/预读全部。
+- **音乐沙龙天花板**（`palace-chambers.js` `cosmosCeiling`）：撤掉 round-9 的宽半透明银河带（用户说像塑料膜），改成星象剧场 `glass-orbital.js skyChart` 的做法：880 颗小星（银河走向上密度渐增）+ 14 颗带光晕与四芒十字的亮星 + 3 组金色星座 + 2 条流星 + 用多层渐变圆盘堆的柔边星云（无硬边色带）。salon 模块 132,264 → **151,610 tri（+19,346，预算 +28,000 内）**，`salon-cosmos-check` 780/780 天花板覆盖 PASS。
+- **产品改进 A「明信片工坊」**（新模块 `src/postcard.js`，本轮推进）：任意机位按 `C`（触屏「明信片」）→ 1440×960 明信片（纸边/金框/院徽/编号），画面只取 WebGL 帧缓冲不含 UI；低画质档临时抬到 1.0 倍渲染一帧再截；地名按城区锚点判断（11 片城区，阈值外「云端漫游」）；保存 PNG 或 Web Share 分享。方案 B「主题航线 · 导览巴士」写入 [03-notes/cielo-product-ideas.md](03-notes/cielo-product-ideas.md) 留待下一轮。
+- **验收**：`node tools/checkall.mjs` **28/28 PASS**；新增 `node tools/mobile-check.mjs`（CDP 移动视口 + 触摸模拟：触屏层/质量档/摇杆位移/拖拽转向/抄本「景」段/明信片出片/PWA 离线缓存 + 桌面零回归，全 PASS）；单文件 `04-output/CIELO.html` **957.9 KB**；观景点 80、抄本 31 页。
+
+## 第十一轮 30 秒上手
+
+~~~powershell
+cd F:/AI/dsh/code-animation/01-source/cielo
+node build.mjs                 # → 04-output/CIELO.html（≈958 KB，单文件）
+node tools/checkall.mjs        # 28 项几何/数据体检
+node tools/mobile-check.mjs    # 触屏 + 桌面回归（需要 Chrome，1–2 分钟）
+node tools/serve.mjs --host=0.0.0.0   # 平板联调，会打印局域网地址
+# 抄本「景」文案改动后：
+node tools/build-lore-scene.mjs && node build.mjs
+~~~
+
+桌面快捷键新增 `C` 明信片；触屏：左摇杆 / 右环视 / 右侧升降 / 底部动作条。URL 新增 `?touch=0|1`、`?q=low|mid|high`、`?sw0`、`?postcard=1`。
+
+## 第十一轮已知遗留 / 注意
+
+1. **真机帧率没测**：只有 headless 相对数据（1280×800，`--disable-gpu-vsync`）：high ~190/167 fps、low ~350/311 fps（v0/v7），相对约 1.8×；不代表安卓平板。下一轮请在真机 `?perf=1` 记录三档 × 3 个观景点的 fps 写回本文件。
+2. **PWA 图标 404 只在本地 `serve.mjs` 默认根（04-output）出现**：manifest 图标用 `../assets/pwa/` 相对路径，Pages 上正确；本地要看图标用 `node tools/mobile-check.mjs`（它用仓库根作静态根）或 `node tools/serve.mjs --root=../../..`。
+3. **bars 活动条在 390 px 竖屏会横向滚动**（手机横屏/平板无此问题）；如要更完美，窄屏改成两行按钮。
+4. **音乐沙龙的星云**仍是"柔和色斑"，不是纯星点；若用户还想更"星象剧场"，下一步只保留星点+星座、把 10 团星云缩到 6 团、透明度再降 30%。
+5. **触摸与键盘混用**：接上蓝牙键盘后按键仍可用，触屏层不会自动隐藏（不冲突，只是按钮还在）。
+6. **iOS Safari 未适配**（用户只要求安卓）；PWA 的 `orientation: landscape` 在 iOS 上部分忽略。
+
+---
 # 交接 · 天空鲸城「CIELO」（2026-11-24 凌晨，第十轮：城市导览抄本 / 云上茶席）
 
 > **2026-11-24 · 第十轮**：用户：「你作为产品负责人兼技术。继续制作天空鲸城。你最近的几次制作我很满意，尤其是 大教堂、音乐沙龙的宇宙顶和展示柜、奇幻「云端星象台」、玻璃宫殿1层爱丽丝奇境风格。天空鲸城内主要建筑、景点、场景的介绍和故事，我希望在游览的时候可以读到，你设计一下。然后其他方面，你继续按照美丽奇幻风格去创造吧。」

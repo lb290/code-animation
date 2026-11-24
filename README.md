@@ -21,10 +21,27 @@
 > 仓库只收**代码、笔记与单文件成品 HTML**（约 20 MB）。第三方参考仓库 `02-refs/`、渲染中间帧 `04-output/_*`、
 > 音视频工程缓存（`.anyaudio/`）、浏览器配置与本机备份都不入库，见 [.gitignore](.gitignore)。
 
-> **交接**：根目录 [HANDOFF.md](HANDOFF.md) 里有两座城市的开工检查单、硬约束、命令与遗留问题。
+> **交接**：先读根目录 [STATUS.md](STATUS.md)（现在的状态、下一步、硬约束、文档地图）；每轮历史在 [HANDOFF.md](HANDOFF.md)；
+> 工作记录规范见 [03-notes/worklog-format.md](03-notes/worklog-format.md)；产品改进方案见 [03-notes/cielo-product-ideas.md](03-notes/cielo-product-ideas.md)。
 > - 「天空之城 · 灯祭」（CELESTIA，夜景浮岛灯市）—— 建筑施工规格见 [03-notes/building-spec.md](03-notes/building-spec.md)
 > - 「天空鲸城」（CIELO，日间欧陆都市 + 巨鲸 + 银蓝科幻列车）—— 规格见 [03-notes/cielo-spec.md](03-notes/cielo-spec.md)，
 >   制作笔记见 [03-notes/cielo-production.md](03-notes/cielo-production.md)
+
+## 平板 / 手机怎么用（安卓）
+
+CIELO 支持触屏：左半屏按住拖动 = 摇杆飞行，右半屏拖动 = 环视，右侧「升 / 降」，底部一排按钮 = 巡游 / 观景 / 导览 / 昼夜 / 烟花 / 摄影 / 明信片 / 露台 / 帮助 / 全屏。触屏默认走「流畅」画质档（关阴影、降渲染分辨率），桌面端行为不变。
+
+三种用法，任选：
+
+| 用法 | 怎么做 | 适合 |
+|---|---|---|
+| **局域网（电脑当服务器）** | 电脑上 `cd 01-source/cielo` → `node tools/serve.mjs --host=0.0.0.0`，它会打印 `http://192.168.x.x:8099/CIELO.html`；平板连同一个 WiFi，用 Chrome 打开这个地址 | 真机联调、改完立刻看 |
+| **装到平板主屏幕（推荐，可离线）** | 平板 Chrome 打开 <https://lb290.github.io/code-animation/04-output/CIELO.html> → 菜单「添加到主屏幕 / 安装应用」；装好后断网也能打开（service worker 缓存单文件） | 日常玩、出门看 |
+| **单文件带走** | 把 `04-output/CIELO.html`（约 0.9 MB）拷到平板，用 Chrome 打开本地文件 | 完全没有网络时 |
+
+画质档可以用 URL 参数强制：`?q=low|mid|high`（默认：触屏 low、桌面 high；开局 150 帧后还会按实测帧时间自动调一档）。`?touch=0` 可在平板上退回桌面式键盘操作。
+
+> 平板建议横屏；竖屏（窄于 760 px）会显示「把平板横过来」的轻提示，可点掉。iOS Safari 未专门适配。
 
 ## 目录
 
