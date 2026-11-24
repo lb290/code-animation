@@ -816,8 +816,17 @@ if (NOUI) {
   started = true;
 }
 
-// round 11: PWA —— 线上 https（GitHub Pages）可以「添加到主屏幕」，装好后断网也能打开；
-// 局域网 http 或直接双击本地文件时浏览器不允许 service worker，自动跳过。
+// round 11: PWA —— 线上 https（GitHub Pages）可以「添加到主屏幕」，装好后断网也能打开。
+// manifest / 触屏图标只在 http(s) 下注入：直接双击单文件（file://）时读 manifest 会被 CORS 拦，
+// 注入可以避免控制台报错，也不影响 PWA 安装。局域网 http 下 service worker 注册会被浏览器拒绝，自动跳过。
+if (location.protocol === 'http:' || location.protocol === 'https:') {
+  const mf = document.createElement('link');
+  mf.rel = 'manifest'; mf.href = 'cielo.webmanifest';
+  document.head.appendChild(mf);
+  const icon = document.createElement('link');
+  icon.rel = 'apple-touch-icon'; icon.href = '../assets/pwa/icon-192.png';
+  document.head.appendChild(icon);
+}
 if (!params.has('sw0') && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
   try { navigator.serviceWorker?.register('cielo-sw.js').catch(() => {}); } catch (e) { /* ignore */ }
 }

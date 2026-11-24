@@ -103,7 +103,7 @@ try {
     'shot:' + png('tablet-hud.png'),
     // PWA：manifest + service worker + 离线缓存（127.0.0.1 是安全上下文，可注册）
     'wait:1500',
-    'log:(async()=>{const hasSW=!!navigator.serviceWorker;const reg=hasSW?await navigator.serviceWorker.getRegistration():null;const mf=await fetch("cielo.webmanifest").then(r=>r.json()).catch(()=>null);const keys=await caches.keys().catch(()=>[]);let hit=false;const k=keys.find(x=>x.startsWith("cielo-"));if(k){hit=!!(await caches.open(k).then(c=>c.match("./CIELO.html")).catch(()=>null));}return JSON.stringify({hasSW,sw:!!reg,manifest:!!mf,name:mf&&mf.name,icons:(mf&&mf.icons||[]).length,keys,offlineHit:hit});})()',
+    'log:(async()=>{const hasSW=!!navigator.serviceWorker;const reg=hasSW?await navigator.serviceWorker.getRegistration():null;const mf=await fetch("cielo.webmanifest").then(r=>r.json()).catch(()=>null);const keys=await caches.keys().catch(()=>[]);let hit=false;const k=keys.find(x=>x.startsWith("cielo-"));if(k){hit=!!(await caches.open(k).then(c=>c.match("./CIELO.html")).catch(()=>null));}return JSON.stringify({hasSW,sw:!!reg,manifest:!!mf,manifestLink:!!document.querySelector("link[rel=manifest]"),name:mf&&mf.name,icons:(mf&&mf.icons||[]).length,keys,offlineHit:hit});})()',
   ]);
 
   const m0 = M.logs[0] || {}, m1 = M.logs[1] || {}, m2 = M.logs[2] || {}, m3 = M.logs[3] || {}, m4 = M.logs[4] || {}, m5 = M.logs[5] || {}, m6 = M.logs[6] || {};
@@ -125,6 +125,7 @@ try {
   ok(m6.postcardClosed === true, '平板：明信片关不掉');
   const pwa = M.logs[7] || {};
   ok(pwa.manifest === true, '平板：manifest 加载失败');
+  ok(pwa.manifestLink === true, '平板：页面没有注入 manifest link（PWA 装不上）');
   ok(pwa.icons >= 3, '平板：manifest 图标少于 3 个');
   ok(pwa.sw === true, '平板：service worker 没有注册');
   ok(pwa.offlineHit === true, '平板：离线缓存里没有 CIELO.html');

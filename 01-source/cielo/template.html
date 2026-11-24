@@ -7,8 +7,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="manifest" href="cielo.webmanifest">
-<link rel="apple-touch-icon" href="../assets/pwa/icon-192.png">
+<!-- manifest / 图标由 main.js 在 http(s) 下注入：直接用 file:// 打开单文件时浏览器
+     不允许读取 manifest（CORS），注入可以避免控制台报错，也不影响 Pages 上的 PWA。 -->
 <link rel="icon" href="data:,">
 <title>天空鲸城 · CIELO</title>
 <style>
