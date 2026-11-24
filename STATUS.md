@@ -4,13 +4,13 @@
 > 本页只写**现在**；每轮的历史在 [HANDOFF.md](HANDOFF.md)，每天的过程在 [05-daily/](05-daily/)。
 
 <!-- AUTO:START -->
-> 自动生成 · 2026-11-24 21:49 · 运行 `node tools/status.mjs --write` 刷新。下面每一行都是从仓库里读出来的，不靠人记。
+> 自动生成 · 2026-11-24 23:12 · 运行 `node tools/status.mjs --write` 刷新。下面每一行都是从仓库里读出来的，不靠人记。
 
 | 项 | 值 |
 |---|---|
-| 分支 / HEAD（生成时） | `main` @ `ef0eadd` · docs: 工作记录规范 + STATUS 现状页 + 自动事实块 + 平板用法 |
-| 工作树 | 2 个改动（3-notes/worklog-format.md、tools/status.mjs） |
-| 成品 · 天空鲸城 | `04-output/CIELO.html` · 957.9 KB |
+| 分支 / HEAD（生成时） | `main` @ `d761b0b` · fix(cielo): 真机试用反馈 4 条 —— 构建戳/诊断、导览不自动弹、菜单收纳、双手同时操作 |
+| 工作树 | 干净 |
+| 成品 · 天空鲸城 | `04-output/CIELO.html` · 963.3 KB |
 | 成品 · 天空之城 · 灯祭 | `04-output/CELESTIA.html` · 145.0 KB |
 | 几何体检 | 28 项（`node tools/checkall.mjs`） |
 | 内容规模 | 观景点 80 · 抄本 31 页 |
