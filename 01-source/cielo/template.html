@@ -61,6 +61,8 @@
   #loading .keys{margin-top:30px;font-family:"Helvetica Neue",Arial,sans-serif;font-size:11px;letter-spacing:.16em;
     color:#eef7ff;line-height:2.1;text-align:center;opacity:.92;text-shadow:0 1px 10px rgba(40,80,140,.5)}
   #loading .keys b{color:#fff8e2;font-weight:600}
+  #loading .build{margin-top:18px;font-family:ui-monospace,Menlo,monospace;font-size:9.5px;letter-spacing:.14em;
+    color:rgba(238,247,255,.62);text-shadow:0 1px 8px rgba(40,80,140,.5)}
   /* ---------- hud ---------- */
   #hud{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity 1.1s ease;z-index:10}
   #hud.show{opacity:1}
@@ -78,6 +80,12 @@
   .hint kbd{display:inline-block;min-width:18px;padding:1px 6px;margin-right:6px;border:1px solid rgba(255,255,255,.55);
     border-radius:3px;font-family:inherit;font-size:9.5px;text-align:center;background:rgba(255,255,255,.14)}
   .hint.fade{opacity:.3}
+  #newbadge{position:absolute;left:32px;bottom:58px;display:none;pointer-events:auto;cursor:pointer;
+    font-family:"Helvetica Neue",Arial,sans-serif;font-size:11px;letter-spacing:.18em;color:#fff8e2;
+    padding:5px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.35);
+    background:rgba(12,28,58,.42);backdrop-filter:blur(6px);text-shadow:0 1px 8px rgba(10,30,60,.6)}
+  #newbadge.show{display:inline-block}
+  html.touch #newbadge{display:none !important}
   #tod{position:absolute;left:32px;bottom:30px;font-family:"Helvetica Neue",Arial,sans-serif;
     font-size:11px;letter-spacing:.34em;color:rgba(255,255,255,.88);text-shadow:0 2px 14px rgba(20,50,100,.65);
     display:flex;align-items:center;gap:9px}
@@ -189,10 +197,22 @@
     font-family:inherit;letter-spacing:.1em;border:1px solid rgba(255,255,255,.35);
     background:rgba(12,28,58,.48);backdrop-filter:blur(8px);touch-action:none;-webkit-tap-highlight-color:transparent}
   #tu-lift button.on{background:rgba(180,220,255,.45);color:#0d203f}
-  #tu-actions{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom));
-    display:flex;gap:6px;padding:7px 8px;border-radius:16px;max-width:96vw;
-    background:linear-gradient(180deg,rgba(10,24,48,.5),rgba(8,20,42,.64));
-    border:1px solid rgba(255,255,255,.2);backdrop-filter:blur(9px);pointer-events:auto;overflow:auto}
+  /* 动作条默认收起（之前 11 个按钮常驻太占屏），右下角一个「菜单」按钮展开 */
+  #tu-actions{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(78px + env(safe-area-inset-bottom));
+    display:none;gap:6px;padding:9px 10px;border-radius:16px;max-width:96vw;flex-wrap:wrap;justify-content:center;
+    background:linear-gradient(180deg,rgba(10,24,48,.62),rgba(8,20,42,.74));
+    border:1px solid rgba(255,255,255,.24);backdrop-filter:blur(10px);pointer-events:auto;overflow:auto;
+    box-shadow:0 14px 40px rgba(4,12,30,.4)}
+  #tu-actions.open{display:flex}
+  #tu-menu{position:fixed;right:calc(14px + env(safe-area-inset-right));bottom:calc(14px + env(safe-area-inset-bottom));
+    width:56px;height:56px;border-radius:50%;appearance:none;border:1px solid rgba(255,255,255,.42);
+    background:rgba(12,28,58,.62);backdrop-filter:blur(10px);color:#eaf4ff;font-size:19px;line-height:1;
+    pointer-events:auto;box-shadow:0 10px 30px rgba(4,12,30,.42);-webkit-tap-highlight-color:transparent}
+  #tu-menu:active{background:rgba(180,220,255,.4);color:#0d203f}
+  #tu-menu .badge{position:absolute;top:-3px;right:-3px;min-width:19px;height:19px;padding:0 4px;border-radius:10px;
+    display:none;align-items:center;justify-content:center;background:#d9536a;color:#fff;font-size:10.5px;
+    border:1.5px solid rgba(255,255,255,.85);letter-spacing:0}
+  #tu-menu.has .badge{display:flex}
   #tu-actions::-webkit-scrollbar{display:none}
   #tu-actions button{flex:0 0 auto;min-width:50px;height:48px;padding:0 9px;border-radius:11px;appearance:none;
     color:#eaf4ff;font-family:inherit;font-size:11.5px;letter-spacing:.1em;border:1px solid rgba(255,255,255,.2);
@@ -291,7 +311,8 @@
     <h1>天空鲸城</h1>
     <div class="sub">CIELO — The Whale Above the Glass City</div>
     <div class="rule"></div>
-    <p class="blurb">云上的白城，大理石露台朝着一座玻璃穹顶的宫殿。<br>巨鲸背着城堡缓缓游过塔尖，浅蓝色的列车在银钢高架环线上滑行 ——<br>它已绕到宫殿背后，不再挡住露台的风景。锦鲤在空气里游弋 —— 这里是整座幻想城市。<br><span style="color:#ffe9b8">宫殿一层的金色门厅、后殿的私人套间，玻璃宫的蓝色大厅，大教堂、车站，<br>还有新落成的歌剧院，都可以飞进去游览。<br>每飞进一处地标，都会滑出一张卡片：按 <b style="color:#ffe9b8">G</b> 打开《城市导览抄本》，读它的来历与故事。<br>按 N 等到夜幕降临：万家灯火亮起，鲸背城浮在星空里；再按 F 放一朵烟花。</span></p>
+    <p class="blurb">云上的白城，大理石露台朝着一座玻璃穹顶的宫殿。<br>巨鲸背着城堡缓缓游过塔尖，浅蓝色的列车在银钢高架环线上滑行 ——<br>它已绕到宫殿背后，不再挡住露台的风景。锦鲤在空气里游弋 —— 这里是整座幻想城市。<br><span style="color:#ffe9b8">宫殿一层的金色门厅、后殿的私人套间，玻璃宫的蓝色大厅，大教堂、车站，<br>还有新落成的歌剧院，都可以飞进去游览。<br>每飞进一处地标，抄本会悄悄记下一页；按 <b style="color:#ffe9b8">G</b> 或底部「导览」打开《城市导览抄本》，
+    先读这一处的建筑与陈设，再读它的故事。<br>按 N 等到夜幕降临：万家灯火亮起，鲸背城浮在星空里；再按 F 放一朵烟花。</span></p>
     <button id="start" disabled>正在点亮城市…</button>
     <div class="keys desk-only">
       <b>WASD</b> 飞行 &nbsp;·&nbsp; <b>鼠标</b> 环视 &nbsp;·&nbsp; <b>Q / E</b> 升降 &nbsp;·&nbsp; <b>Shift</b> 加速<br>
@@ -299,10 +320,11 @@
       <b>G</b> 城市导览抄本 &nbsp;·&nbsp; <b>N</b> 昼夜切换 &nbsp;·&nbsp; <b>F</b> 放烟花 &nbsp;·&nbsp; <b>C</b> 明信片
     </div>
     <div class="keys touch-only">
-      <b>左半屏</b> 按住拖动 = 摇杆飞行 &nbsp;·&nbsp; <b>右半屏</b> 拖动 = 环视<br>
-      <b>升 / 降</b> 在右侧 &nbsp;·&nbsp; 底部一排按钮 = 巡游 · 观景 · 导览 · 昼夜 · 烟花 · 摄影 · 明信片<br>
+      <b>左半屏</b> 按住拖动 = 摇杆飞行 &nbsp;·&nbsp; <b>右半屏</b> 拖动 = 转视角（<b>两手可同时操作</b>）<br>
+      <b>升 / 降</b> 在右侧 &nbsp;·&nbsp; 右下角 <b>☰ 菜单</b> 展开按钮：巡游 · 观景 · 导览 · 昼夜 · 烟花 · 摄影 · 明信片<br>
       横屏体验最好；浏览器菜单里「添加到主屏幕」可以离线打开
     </div>
+    <div class="build">构建 __BUILD_STAMP__</div>
   </div>
 </div>
 
@@ -314,11 +336,13 @@
     <span><kbd>空格</kbd>巡游</span><span><kbd>1-9</kbd>观景</span><span><kbd>Z X</kbd>切换</span><span><kbd>G</kbd>导览</span><span><kbd>N</kbd>昼夜</span><span><kbd>F</kbd>烟花</span><span><kbd>C</kbd>明信片</span><span><kbd>H</kbd>帮助</span>
   </div>
   <div class="chrome" id="tod">白昼</div>
+  <div id="newbadge">抄本 · 0 条新记载</div>
   <div id="toast"></div>
   <div id="help">
     <h3>操 作</h3>
     <div class="touch-only"><span>左半屏拖动</span><span class="v">摇杆飞行</span></div>
-    <div class="touch-only"><span>右半屏拖动</span><span class="v">环视</span></div>
+    <div class="touch-only"><span>右半屏拖动</span><span class="v">转视角（可边飞边转）</span></div>
+    <div class="touch-only"><span>右下 ☰ 菜单</span><span class="v">展开动作按钮</span></div>
     <div class="touch-only"><span>右缘 升 / 降</span><span class="v">上下高度</span></div>
     <div class="touch-only"><span>底部按钮</span><span class="v">巡游 / 观景 / 导览 / 昼夜 / 烟花 / 摄影 / 明信片</span></div>
     <div class="desk-only"><span>W A S D</span><span class="v">飞行</span></div>
@@ -336,6 +360,7 @@
     <div class="desk-only"><span>H</span><span class="v">收起此面板</span></div>
     <div class="desk-only"><span>C</span><span class="v">明信片工坊（保存 / 分享当前画面）</span></div>
     <div class="touch-only"><span>明信片</span><span class="v">把此刻做成一张可保存的明信片</span></div>
+    <div class="build">构建 __BUILD_STAMP__</div>
   </div>
 </div>
 
@@ -378,6 +403,7 @@
     <button id="tu-up" aria-label="上升">升</button>
     <button id="tu-down" aria-label="下降">降</button>
   </div>
+  <button id="tu-menu" aria-label="打开菜单" aria-expanded="false"><span class="ic">☰</span><span class="badge" id="tu-badge">0</span></button>
   <div id="tu-actions">
     <button data-act="tour">巡游</button>
     <button data-act="prev">‹ 景</button>

@@ -9,6 +9,7 @@
 // steps: wait:<ms> | eval:<js> | shot:<path> | key:<Key> | keydown:<Key> | keyup:<Key>
 //        move:<dx>,<dy> | click | log:<js>
 //        tdown:<x>,<y> | tmove:<x>,<y> | tup:<x>,<y> | tap:<x>,<y>   (touch, needs --touch)
+//        t2down:<x1>,<y1>,<x2>,<y2> | t2move:<...> | t2up   (two-finger: joystick + look at once)
 // flags: --chrome=<path> --keep (do not close the browser) --port=9333 --gpu=swiftshader|default
 //        --mobile (mobile viewport + screen orientation) --touch (touch emulation) --dpr=2
 import { spawn } from 'node:child_process';
@@ -198,6 +199,15 @@ async function main() {
       const [x, y] = (rest || `${opt.w / 2},${opt.h / 2}`).split(',').map(Number);
       await send(ws, 'Input.dispatchMouseEvent', { type: 'mousePressed', x, y, button: 'left', clickCount: 1 }, sessionId);
       await send(ws, 'Input.dispatchMouseEvent', { type: 'mouseReleased', x, y, button: 'left', clickCount: 1 }, sessionId);
+    } else if (kind === 't2down' || kind === 't2move' || kind === 't2up') {
+      const n = rest ? rest.split(',').map(Number) : [];
+      const pts = n.length >= 4
+        ? [{ x: n[0], y: n[1], id: 1, radiusX: 2, radiusY: 2, force: 1 }, { x: n[2], y: n[3], id: 2, radiusX: 2, radiusY: 2, force: 1 }]
+        : [];
+      await send(ws, 'Input.dispatchTouchEvent', {
+        type: kind === 't2down' ? 'touchStart' : kind === 't2move' ? 'touchMove' : 'touchEnd',
+        touchPoints: kind === 't2up' ? [] : pts,
+      }, sessionId);
     } else if (kind === 'tdown' || kind === 'tmove' || kind === 'tup' || kind === 'tap') {
       const [x, y] = (rest || `${opt.w / 2},${opt.h / 2}`).split(',').map(Number);
       const point = { x, y, id: 1, radiusX: 2, radiusY: 2, force: 1 };

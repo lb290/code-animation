@@ -6,6 +6,7 @@ import * as esbuild from 'esbuild';
 import fs from 'node:fs';
 import path from 'node:path';
 import url from 'node:url';
+import { execFileSync } from 'node:child_process';
 
 const here = path.dirname(url.fileURLToPath(import.meta.url));
 const dev = process.argv.includes('--dev');
@@ -27,7 +28,11 @@ const res = await esbuild.build({
 });
 const js = res.outputFiles[0].text;
 const tpl = fs.readFileSync(path.join(here, 'template.html'), 'utf8');
-const html = tpl.replace('/*__SCRIPT__*/', () => js);
+// 构建戳：写进标题页 / 帮助面板 / ?diag，方便一眼认出手机上那份是不是最新构建。
+// （第十一轮的教训：用户从旧目录拷了一份 CIELO.html，缺了大教堂/茶席，却以为是新版本。）
+const hash = (() => { try { return execFileSync('git', ['rev-parse', '--short', 'HEAD'], { cwd: here, encoding: 'utf8' }).trim(); } catch { return 'nogit'; } })();
+const stamp = new Date().toISOString().slice(0, 16).replace('T', ' ') + ' · ' + hash;
+const html = tpl.replace('/*__SCRIPT__*/', () => js).replaceAll('__BUILD_STAMP__', stamp);
 
 const name = 'CIELO' + suffix + (dev ? '.dev' : '') + '.html';
 const out = path.join(outDir, name);

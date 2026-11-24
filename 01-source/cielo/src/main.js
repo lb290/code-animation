@@ -2,7 +2,7 @@
 import { createGL, program, mesh, quad, makeRT, makeDepthRT, freeRT, drawMesh, setUniforms } from './gl.js';
 import * as S from './shaders.js';
 import { m4, clamp, norm, mulberry32, TAU, sub, add, scale as vs, len } from './math.js';
-import { Camera } from './camera.js';
+import { Camera, VIEWS } from './camera.js';
 import { buildWorld } from './world.js';
 import { LOOK } from './palette.js';
 import { rgb } from './geo.js';
@@ -293,13 +293,27 @@ function toast(msg, ms = 2400) {
 }
 
 // ---------------------------------------------------------------- 导览抄本
-// 每处地标一个抵达区域：首次飞进去滑出一张卡片，并把那一页"显影"进抄本（G 打开）。
+// 每处地标一个抵达区域：首次飞进去把那一页"显影"进抄本（G / 底部导览打开）。
+// 第十一轮修订：默认不再自动弹卡片（用户反馈导览内容不要挡画面），只在菜单/左下挂「新」角标。
 const guide = createGuide({
   cam,
   toast: (msg, ms) => toast(msg, ms),
   // 触屏上没有键盘，卡片停留久一点，并且可以点开阅读
   cardMs: TOUCH ? 12000 : 9000,
+  autoCard: params.has('cards'),
+  onFresh: (n) => setFreshBadge(n),
 });
+
+// 新记载角标：触屏挂右下菜单按钮，桌面是左下角一枚小胶囊（点了就打开抄本）
+function setFreshBadge(n) {
+  const v = Number(n) || 0;
+  touch?.setBadge?.(v);
+  const b = document.getElementById('newbadge');
+  if (!b) return;
+  b.textContent = '抄本 · ' + v + ' 条新记载 · 点击阅读';
+  b.classList.toggle('show', v > 0);
+}
+document.getElementById('newbadge')?.addEventListener('click', () => guide.toggle());
 
 let photoMode = false;
 function setPhoto(on) {
@@ -445,6 +459,35 @@ let frames = 0, fpsAcc = 0, cpuMs = 0;
 let started = false;
 let bootN = 0, bootSum = 0;   // 开局帧时间采样（自动画质档用）
 
+// 构建戳（build.mjs 在 HTML 里替换 __BUILD_STAMP__）：用来一眼判断手机上那份是不是最新构建。
+const BUILD = (() => {
+  const el = document.querySelector('#loading .build');
+  return el ? el.textContent.replace(/^构建\s*/, '').trim() : 'unknown';
+})();
+console.log('[main] build ' + BUILD + ' | static tris ' + world.tris.toLocaleString() + ' | views ' + VIEWS.length + ' | lore ' + guide.total);
+
+// ?diag / __cielo.diag()：一眼看到构建、内容规模、协议与画质（排查"手机上少了建筑"这类问题）
+function showDiag(extra) {
+  document.getElementById('diag')?.remove();
+  const d = document.createElement('div');
+  d.id = 'diag';
+  d.style.cssText = 'position:fixed;left:12px;top:12px;z-index:40;max-width:min(92vw,620px);padding:12px 14px;' +
+    'border-radius:10px;background:rgba(6,16,34,.86);color:#dfe9ff;font:11.5px/1.7 ui-monospace,Menlo,monospace;' +
+    'white-space:pre-wrap;cursor:pointer;border:1px solid rgba(160,200,255,.35)';
+  const rows = [
+    'CIELO 诊断 · 点一下关闭',
+    '构建   ' + BUILD,
+    '协议   ' + location.protocol + '  触屏 ' + (TOUCH ? 'on' : 'off') + '  画质 ' + QNAME + '  倍率 ' + W.scale.toFixed(2),
+    '内容   静态 ' + world.tris.toLocaleString() + ' tri · 动态 ' + ctx.dyn.length + ' actor · 点光 ' + ctx.points.length +
+      ' · 观景 ' + VIEWS.length + ' · 抄本 ' + guide.total + ' 页',
+    '渲染   绘制 ' + perf.drawCalls + ' 次 · cpu ' + perf.cpuMs.toFixed(1) + ' ms · 已渲染 ' + perf.frames + ' 帧',
+    '地址   ' + location.href,
+  ];
+  if (extra) rows.push('附加   ' + extra);
+  d.textContent = rows.join('\n');
+  d.addEventListener('click', () => d.remove());
+  document.body.appendChild(d);
+}
 const perf = { frames: 0, cpuMs: 0, drawCalls: 0, tris: world.tris, buildMs };
 window.__cielo = {
   cam, ctx, world, perf,
@@ -460,6 +503,8 @@ window.__cielo = {
   guide,
   postcard,
   touch,
+  build: BUILD,
+  diag: showDiag,
   isTouch: TOUCH,
   quality: () => QNAME,
   tiers: TIERS,
@@ -797,8 +842,8 @@ function startExperience() {
   cam.setCam([6, 38.5, 108], [-18, 56, -200], 52);
   cam.setView(0, false);
   if (TOUCH) {
-    setTimeout(() => toast('左手推摇杆飞行 · 右手拖动环视', 3600), 2200);
-    setTimeout(() => toast('底部「导览」打开城市抄本', 3600), 6600);
+    setTimeout(() => toast('左手推摇杆飞行 · 右手同时拖动转视角', 3800), 2200);
+    setTimeout(() => toast('右下 ☰ 菜单：导览 / 昼夜 / 烟花 / 明信片', 3800), 6800);
   } else {
     setTimeout(() => toast('空格键 · 自动巡游整座城市', 3200), 2600);
     setTimeout(() => toast('G · 打开城市导览抄本', 3200), 6200);
@@ -835,6 +880,7 @@ requestAnimationFrame((n) => {
   last = n;
   requestAnimationFrame(drawFrame);
   setTimeout(ready, 60);
-  // ?postcard=1：截图/验收时自动冲洗一张明信片
+  // ?postcard=1：截图/验收时自动冲洗一张明信片；?diag 打开诊断面板
   if (params.has('postcard')) setTimeout(() => { if (started) postcard.open(); }, 1800);
+  if (params.has('diag')) setTimeout(() => showDiag(), 1200);
 });

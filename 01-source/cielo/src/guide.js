@@ -25,7 +25,7 @@ function zoneCentre(entry) {
   return null;
 }
 
-export function createGuide({ cam, toast, cardMs = 9000 }) {
+export function createGuide({ cam, toast, cardMs = 9000, autoCard = false, onFresh = null }) {
   const found = new Set();   // 已抵达
   const fresh = new Set();   // 已抵达但还没在抄本里翻开
   let spoiler = false;
@@ -121,6 +121,7 @@ export function createGuide({ cam, toast, cardMs = 9000 }) {
     const e = x.entry;
     const has = found.has(e.id) || spoiler;
     const wasFresh = fresh.delete(e.id);
+    if (wasFresh) onFresh?.(fresh.size);
     const head =
       '<div class="a-tag">' + (has ? 'LORE ' + pad(x.i + 1) + ' / ' + pad(total) + ' · ' : '') + x.area.cn + ' · ' + (e.tag || '记载') + '</div>' +
       '<h2>' + e.title + '</h2>' +
@@ -198,9 +199,13 @@ export function createGuide({ cam, toast, cardMs = 9000 }) {
     found.add(x.entry.id);
     fresh.add(x.entry.id);
     save();
-    // 卡片节流：刚弹过一张就排队，等它收起来再逐张补上；抄本里也标"新"
-    if (Date.now() - lastCardAt > CARD_GAP && !cardEl?.classList.contains('show')) showCard(x);
-    else { pending.push(x); if (pending.length > 6) pending.shift(); }
+    // 默认**不弹卡片**：抵达只把这一页悄悄记进抄本，并在菜单按钮上挂一个「新」角标，
+    // 想看的时候自己点开（用户反馈：导览内容不要默认显示）。?cards=1 可恢复旧行为。
+    if (autoCard) {
+      if (Date.now() - lastCardAt > CARD_GAP && !cardEl?.classList.contains('show')) showCard(x);
+      else { pending.push(x); if (pending.length > 6) pending.shift(); }
+    }
+    onFresh?.(fresh.size);
     if (open) refresh();
     return true;
   }
@@ -214,6 +219,7 @@ export function createGuide({ cam, toast, cardMs = 9000 }) {
   function unlockAll() {
     for (const x of items) { found.add(x.entry.id); }
     save();
+    onFresh?.(fresh.size);
     if (open) refresh();
   }
 
@@ -252,6 +258,7 @@ export function createGuide({ cam, toast, cardMs = 9000 }) {
     update, toggle, close, nav, openAt, toggleSpoiler, unlockSpecial, unlockAll, hideCard,
     isOpen: () => open,
     count: () => foundCount(),
+    newCount: () => fresh.size,
     total,
     has: (id) => found.has(id),
   };
