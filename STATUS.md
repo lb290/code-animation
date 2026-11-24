@@ -4,11 +4,11 @@
 > 本页只写**现在**；每轮的历史在 [HANDOFF.md](HANDOFF.md)，每天的过程在 [05-daily/](05-daily/)。
 
 <!-- AUTO:START -->
-> 自动生成 · 2026-11-25 00:41 · 运行 `node tools/status.mjs --write` 刷新。下面每一行都是从仓库里读出来的，不靠人记。
+> 自动生成 · 2026-11-25 00:51 · 运行 `node tools/status.mjs --write` 刷新。下面每一行都是从仓库里读出来的，不靠人记。
 
 | 项 | 值 |
 |---|---|
-| 分支 / HEAD（生成时） | `main` @ `d9f95f8` · docs(cielo): 第十二轮记录 —— 崩溃合同 / HANDOFF / STATUS / 日记 / 产品方案 |
+| 分支 / HEAD（生成时） | `main` @ `d31715f` · fix(cielo): ?diag 同时显示 JS 堆与上限（并注明含未回收垃圾），重建 978.0 KB |
 | 工作树 | 干净 |
 | 成品 · 天空鲸城 | `04-output/CIELO.html` · 978.0 KB |
 | 成品 · 天空之城 · 灯祭 | `04-output/CELESTIA.html` · 145.0 KB |
