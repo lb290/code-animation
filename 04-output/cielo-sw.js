@@ -1,7 +1,8 @@
 // cielo-sw.js — 第十一轮 PWA 离线壳。
 // 只缓存天空鲸城这一页（单文件 HTML + 图标 + manifest），装到主屏幕后断网也能打开。
 // 换版本时把 VERSION 加一：activate 会清掉旧缓存。
-const VERSION = 'cielo-v11-2026-11-24';
+// 每次发布记得改版本号：新 SW 会清掉旧缓存（v11.1 = 平板试用反馈修复版）
+const VERSION = 'cielo-v11.2-2026-11-24';
 const CORE = [
   './CIELO.html',
   './cielo.webmanifest',
@@ -32,17 +33,19 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(req.url);
   if (url.origin !== location.origin) return;
 
-  // 页面导航：优先缓存（离线可用），后台顺手更新
+  // 页面导航：联网时**优先网络**（一刷新就是最新构建），断网才回落到缓存。
+  // 之前是缓存优先，导致每次发版后用户要看两次旧版才发现更新。
   if (req.mode === 'navigate') {
-    e.respondWith(
-      caches.match('./CIELO.html').then((hit) => {
-        const net = fetch(req).then((res) => {
-          if (res && res.ok) caches.open(VERSION).then((c) => c.put('./CIELO.html', res.clone()));
-          return res;
-        }).catch(() => hit);
-        return hit || net;
-      })
-    );
+    e.respondWith((async () => {
+      const cache = await caches.open(VERSION);
+      const cached = await cache.match('./CIELO.html');
+      const net = await fetch(req).catch(() => null);
+      if (net && net.ok) {
+        cache.put('./CIELO.html', net.clone()).catch(() => {});
+        return net;
+      }
+      return cached || net || new Response('离线且没有缓存，请先联网打开一次。', { status: 503, headers: { 'content-type': 'text/plain; charset=utf-8' } });
+    })());
     return;
   }
 
