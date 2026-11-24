@@ -1,6 +1,6 @@
 // world.js — assembles the city. Owned by the lead; content modules are called here.
 import { B, cylinder, rgb, mulc } from './geo.js';
-import { mesh } from './gl.js';
+import { mesh, meshChunked } from './gl.js';
 import { buildCity } from './city.js';
 import { buildLandmarks } from './landmark.js';
 import { buildWhale } from './whale.js';
@@ -26,9 +26,26 @@ import { L } from './layout.js';
 import { mulberry32, TAU, noise2 } from './math.js';
 
 export function buildWorld(gl) {
-  const b = new B();
+  // 第十二轮 · 手机崩溃修复：世界几何曾经全部堆在一个 B 里（普通 JS number 数组，
+  // 峰值 1.2 GB+），安卓 Chrome 直接 OOM。现在 B 用 chunked 模式（分块 TypedArray），
+  // 每攒够一批三角就流式上传到 GPU 并丢掉 JS 侧数据（见 flush）。改动只在内存上：
+  // 顶点数据、三角形数量、绘制顺序都不变。
+  // 批大小 20 万三角；city 一个模块就有 78 万，是单批上限（≈103 MB，仍在安全区）。
+  const BATCH_TRI = Number(new URLSearchParams(location.search).get('batch') || 200000);   // ?batch= 调试分批量
+  const meshes = [];
+  const b = new B({ chunked: true });
+  const flush = () => {
+    if (!b.i.length) return;
+    const mesh1 = meshChunked(gl, b);
+    // 显存吃紧时 bufferData 会以 OUT_OF_MEMORY 失败（不抛异常），这里记下来给 ?diag 看
+    const err = gl.getError();
+    if (err !== gl.NO_ERROR) ctx.failures.push({ name: 'upload', msg: 'gl error 0x' + err.toString(16) + ' at tri ' + Math.round(b.triCount) });
+    meshes.push(mesh1);
+    b.reset();   // 复用块：不分配新 ArrayBuffer，也不会留下几亿字节垃圾等 GC
+  };
   const ctx = {
     gl,             // create your own meshes with mesh(ctx.gl, ...)
+    failures: [],   // 模块构建 / GPU 上传失败的记录（?diag 会显示，避免"少了教堂"再无声发生）
     points: [],     // light sources: {p:[x,y,z], col:[r,g,b], range, int}
     lanterns: [],   // static billboards: {p, size, rot, alpha, shape, col}
     dyn: [],        // dynamic actors (see actor.js); the renderer draws these every frame
@@ -45,8 +62,10 @@ export function buildWorld(gl) {
       fn();
     } catch (e) {
       console.warn('[world] module ' + name + ' failed:', e && e.message, e && e.stack);
+      ctx.failures.push({ name, msg: String((e && e.message) || e) });
     }
     ctx.triLog[name] = (ctx.triLog[name] || 0) + (b.i.length / 3 - i0);
+    if (b.i.length / 3 >= BATCH_TRI) flush();
   };
 
   tag('ground', () => buildIsland(b, ctx, rng));
@@ -82,13 +101,17 @@ export function buildWorld(gl) {
   // its local rng draws never shift any earlier module's sequence.
   tag('teaPavilion', () => buildTeaPavilion(b, ctx, rng));
 
-  const built = b.build(gl);
-  const m = mesh(gl, built.verts, built.indices);
+  flush();
+  b.release();   // 上传完就放掉 JS 侧的块（手机上省 100+ MB 存活内存）
+  let tris = 0, verts = 0;
+  for (const m of meshes) { tris += m.count / 3; verts += m.vertCount; }
   return {
-    mesh: m,
+    // mesh 保留为首批（bench.mjs / 旧脚本只把它当存在性探测用）；真正绘制遍历 meshes。
+    mesh: meshes[0] || null,
+    meshes,
     ctx,
-    tris: built.indices.length / 3,
-    verts: built.verts.length / 11,
+    tris,
+    verts,
   };
 }
 

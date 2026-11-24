@@ -15,6 +15,8 @@ import { makeFireworks } from './fireworks.js';
 import { createGuide } from './guide.js';
 import { detectTouch, createTouch } from './touch.js';
 import { createPostcard } from './postcard.js';
+import { ROUTES, routeById } from './routes.js';
+import { LORE } from './lore.js';
 
 const canvas = document.getElementById('c');
 const gl = createGL(canvas);
@@ -79,6 +81,9 @@ const t0 = performance.now();
 const world = buildWorld(gl);
 const ctx = world.ctx;
 const buildMs = performance.now() - t0;
+// 第十二轮：模块构建 / GPU 上传若有失败，必须在控制台和 ?diag 里留下名字（"少了教堂/车站"
+// 这类问题以前是静默的，用户只能看到城市缺块）。
+if (ctx.failures && ctx.failures.length) console.warn('[main] world failures: ' + JSON.stringify(ctx.failures));
 
 // ---------------------------------------------------------------- round 6: night
 const dn = new DayNight({ tod: TOD, freeze: FREEZE >= 0 });
@@ -372,6 +377,126 @@ const touch = TOUCH ? createTouch({
   },
 }) : { enabled: false };
 
+
+// ---------------------------------------------------------------- 第十二轮：主题航线 · 导览巴士
+// 数据在 src/routes.js（三条有序站点表：观景点索引 + 抄本页 id + 停留秒数）。
+// 启程后：cam.setView() 平滑到该站 → 停留 → 下一站；航线条常驻顶部显示进度，
+// 可暂停/继续/退出/读这一站。任何手动操作（摇杆、拖视角、WASD、观景键）都会在
+// 镜头稳定后被判定为"用户接管"，航线自动退出 —— 用户永远优先于导览。
+const LORE_INDEX = new Map(LORE.map((e, i) => [e.id, i]));
+const ROUTE = { r: null, i: 0, t: 0, paused: false };
+const routebar = document.getElementById('routebar');
+const rbRoute = document.getElementById('rb-route');
+const rbStop = document.getElementById('rb-stop');
+const rbPause = document.getElementById('rb-pause');
+const gbRoutes = document.getElementById('gb-routes');
+const gbRoutesBtn = document.getElementById('gb-routes-btn');
+
+function updateRouteBar() {
+  if (!ROUTE.r) { routebar?.classList.remove('on'); return; }
+  const st = ROUTE.r.stops[ROUTE.i];
+  if (rbRoute) rbRoute.textContent = ROUTE.r.name;
+  if (rbStop) rbStop.innerHTML = '第 ' + (ROUTE.i + 1) + ' / ' + ROUTE.r.stops.length + ' 站 · <b>' + st.title + '</b>';
+  if (rbPause) rbPause.textContent = ROUTE.paused ? '继续' : '暂停';
+  routebar?.classList.add('on');
+}
+function hideRoutesPanel() {
+  gbRoutes?.classList.remove('on');
+  gbRoutesBtn?.classList.remove('on');
+  gbRoutesBtn?.setAttribute('aria-expanded', 'false');
+}
+function startRoute(id) {
+  const r = routeById(id);
+  if (!r) return false;
+  ROUTE.r = r; ROUTE.i = 0; ROUTE.t = 0; ROUTE.paused = false;
+  guide.close();
+  hideRoutesPanel();
+  cam.stopTour();
+  cam.setView(r.stops[0].view, FREEZE >= 0);
+  updateRouteBar();
+  toast('航线启程 · ' + r.name + ' · ' + r.stops.length + ' 站', 2600);
+  return true;
+}
+function exitRoute(why) {
+  if (!ROUTE.r) return;
+  const name = ROUTE.r.name;
+  ROUTE.r = null; ROUTE.i = 0; ROUTE.t = 0; ROUTE.paused = false;
+  routebar?.classList.remove('on');
+  toast('已退出航线「' + name + '」' + (why ? ' · ' + why : ''), 2400);
+}
+function routeTick(dt) {
+  const s = ROUTE;
+  if (!s.r) return;
+  const st = s.r.stops[s.i];
+  const v = VIEWS[st.view];
+  if (!s.paused) s.t += dt;
+  // 用户接管判定：机位偏移 >12 m 或视线夹角 >23°（只在 2.4 s 镜头稳定后判）
+  if (s.t > 2.4) {
+    const dx = cam.pos[0] - v.pos[0], dy = cam.pos[1] - v.pos[1], dz = cam.pos[2] - v.pos[2];
+    // 视线对比必须用 cam.forward（实时 yaw/pitch）：拖视角只改 yaw/pitch，不会更新 cam.lookAt
+    const f = cam.forward;
+    const bx = v.look[0] - v.pos[0], by = v.look[1] - v.pos[1], bz = v.look[2] - v.pos[2];
+    const lb = Math.hypot(bx, by, bz);
+    const cosang = lb > 1e-3 ? (f[0] * bx + f[1] * by + f[2] * bz) / lb : 1;
+    if (Math.hypot(dx, dy, dz) > 12 || cosang < 0.92) { exitRoute('你接手了视角'); return; }
+  }
+  if (!s.paused && s.t >= (st.stay || 14)) {
+    s.t = 0;
+    s.i++;
+    if (s.i >= s.r.stops.length) {
+      const nm = s.r.name;
+      s.r = null; routebar?.classList.remove('on');
+      toast('航线结束 · ' + nm + ' · 抄本已记下沿途的页', 3200);
+      return;
+    }
+    cam.setView(s.r.stops[s.i].view, false);
+    guide.hideCard();
+    updateRouteBar();
+  }
+}
+function buildRouteCards() {
+  const list = document.getElementById('rt-list');
+  if (!list || list.dataset.built) return;
+  list.dataset.built = '1';
+  for (const r of ROUTES) {
+    const secs = r.stops.reduce((a, s) => a + (s.stay || 14), 0);
+    const card = document.createElement('div');
+    card.className = 'rt-card';
+    const name = document.createElement('div'); name.className = 'rt-name'; name.textContent = r.name;
+    const en = document.createElement('div'); en.className = 'rt-en'; en.textContent = r.en || '';
+    const blurb = document.createElement('div'); blurb.className = 'rt-blurb'; blurb.textContent = r.blurb || '';
+    const meta = document.createElement('div'); meta.className = 'rt-meta';
+    meta.textContent = r.stops.length + ' 站 · 约 ' + Math.max(1, Math.round(secs / 60)) + ' 分钟';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = '启程';
+    btn.addEventListener('click', () => startRoute(r.id));
+    card.append(name, en, blurb, meta, btn);
+    list.appendChild(card);
+  }
+}
+buildRouteCards();
+gbRoutesBtn?.addEventListener('click', () => {
+  const on = !gbRoutes?.classList.contains('on');
+  gbRoutes?.classList.toggle('on', on);
+  gbRoutesBtn.classList.toggle('on', on);
+  gbRoutesBtn.setAttribute('aria-expanded', on ? 'true' : 'false');
+});
+if (rbPause) rbPause.addEventListener('click', () => {
+  if (!ROUTE.r) return;
+  ROUTE.paused = !ROUTE.paused;
+  updateRouteBar();
+  toast(ROUTE.paused ? '航线暂停' : '航线继续', 1600);
+});
+document.getElementById('rb-exit')?.addEventListener('click', () => exitRoute('手动退出'));
+document.getElementById('rb-read')?.addEventListener('click', () => {
+  if (!ROUTE.r) return;
+  const st = ROUTE.r.stops[ROUTE.i];
+  const i = LORE_INDEX.get(st.lore);
+  if (i !== undefined) guide.openAt(i);
+  if (!ROUTE.paused) { ROUTE.paused = true; updateRouteBar(); }
+});
+
 // 手动 / 自动切换画质档（触屏默认 low；桌面 ?q= 或自动降档可切）
 function setQuality(name) {
   if (!TIERS[name] || name === QNAME) return;
@@ -457,7 +582,7 @@ let time = START_T;
 let last = performance.now();
 let frames = 0, fpsAcc = 0, cpuMs = 0;
 let started = false;
-let bootN = 0, bootSum = 0;   // 开局帧时间采样（自动画质档用）
+let bootN = 0, bootSum = 0, bootM = 0;   // 开局帧时间采样（自动画质档用）
 
 // 构建戳（build.mjs 在 HTML 里替换 __BUILD_STAMP__）：用来一眼判断手机上那份是不是最新构建。
 const BUILD = (() => {
@@ -481,6 +606,9 @@ function showDiag(extra) {
     '内容   静态 ' + world.tris.toLocaleString() + ' tri · 动态 ' + ctx.dyn.length + ' actor · 点光 ' + ctx.points.length +
       ' · 观景 ' + VIEWS.length + ' · 抄本 ' + guide.total + ' 页',
     '渲染   绘制 ' + perf.drawCalls + ' 次 · cpu ' + perf.cpuMs.toFixed(1) + ' ms · 已渲染 ' + perf.frames + ' 帧',
+    '世界   ' + world.meshes.length + ' 批 · 构建 ' + Math.round(buildMs) + ' ms' +
+      (performance.memory ? ' · JS 堆 ' + (performance.memory.usedJSHeapSize / 1048576).toFixed(0) + ' MB' : ''),
+    ...(ctx.failures && ctx.failures.length ? ['失败   ' + ctx.failures.map((f) => f.name + ': ' + String(f.msg).slice(0, 70)).join(' | ')] : []),
     '地址   ' + location.href,
   ];
   if (extra) rows.push('附加   ' + extra);
@@ -508,6 +636,11 @@ window.__cielo = {
   isTouch: TOUCH,
   quality: () => QNAME,
   tiers: TIERS,
+  // 主题航线：给验收脚本/控制台用
+  routes: ROUTES,
+  startRoute: (id) => startRoute(id),
+  exitRoute: (why) => exitRoute(why),
+  routeState: () => ({ id: ROUTE.r ? ROUTE.r.id : null, index: ROUTE.i, paused: ROUTE.paused, total: ROUTE.r ? ROUTE.r.stops.length : 0, t: +ROUTE.t.toFixed(2) }),
   setQuality: (n) => setQuality(n),
   stats: () => ({ quality: QNAME, scale: W.scale, shadow: SHADOW.on, touch: TOUCH, pointerLocked: locked, started }),
   ready: false,
@@ -528,6 +661,8 @@ function drawFrame(now) {
 
   const c0 = performance.now();
   cam.update(FREEZE >= 0 ? 0 : dt);
+  // 主题航线（第十二轮）：推进站点、判定"用户接管"
+  routeTick(FREEZE >= 0 ? 0 : dt);
   // 冻结帧（截图 / ?freeze=）时 dt 恒为 0，抵达检测用一个固定步长，卡片才会出现
   if (started) guide.update(cam.pos, FREEZE >= 0 ? 0.24 : dt);
   ambience.camPos = cam.pos;
@@ -561,7 +696,8 @@ function drawFrame(now) {
     gl.disable(gl.CULL_FACE);
     gl.useProgram(P.depth.program);
     setUniforms(gl, P.depth, { uProj: SHADOW.proj, uView: SHADOW.view, uModel: IDENT });
-    drawMesh(gl, world.mesh);
+    // 世界被分成若干批（world.meshes）：静态几何一样，只是内存分块上传
+    for (const wm of world.meshes) drawMesh(gl, wm);
     for (const a of litActors) {
       setUniforms(gl, P.depth, { uModel: a.model ? a.model(time, dt) : IDENT });
       drawMesh(gl, a.mesh);
@@ -619,7 +755,7 @@ function drawFrame(now) {
     gl.enable(gl.DEPTH_TEST);
     gl.depthMask(true);
     pass(P.lit, rtScene, { ...sceneUniforms(), uModel: IDENT, uTime: time });
-    drawMesh(gl, world.mesh); draws++;
+    for (const wm of world.meshes) { drawMesh(gl, wm); draws++; }
     glCheck('world');
   }
 
@@ -798,16 +934,18 @@ function drawFrame(now) {
       else if (avg < ADAPT.lo && W.scale < ADAPT.max) { W.scale = Math.min(ADAPT.max, W.scale + 0.08); resize(); ADAPT.cool = 2; }
     }
   }
-  // 开局 150 帧后按实测帧时间调整一次画质档（只调一次，避免来回跳）
+  // 开局画质探测：先跳过 40 帧（着色器编译 + 构建期内存回收带来的一次性抖动），
+  // 再取 120 帧平均。第十二轮教训：分批上传后的头几十帧曾被 GC 拖到 40 ms+，桌面
+  // 被误判成"设备慢"直接降档 —— 这不是设备慢，是启动期的一次性开销。
   if (FREEZE < 0 && started && bootN >= 0) {
     bootN++;
-    bootSum += dtRaw * 1000;
-    if (bootN === 150) {
-      const avg = bootSum / bootN;
+    if (bootN > 40) { bootSum += dtRaw * 1000; bootM++; }
+    if (bootN === 160) {
+      const avg = bootSum / Math.max(1, bootM);
       bootN = -1;
-      console.log('[main] first 150 frames avg ' + avg.toFixed(1) + ' ms · quality ' + QNAME);
+      console.log('[main] boot frames 41-160 avg ' + avg.toFixed(1) + ' ms · quality ' + QNAME);
+      // 只降不升：触屏默认就是 low，自动升档会改变用户看到的画质/发热；真机想高画质用 ?q= 手动指定。
       if (avg > 40 && QNAME !== 'low') setQuality('low');
-      else if (TOUCH && avg < 18 && QNAME === 'low') setQuality('mid');
     }
   }
   perf.cpuMs = cpuMs;
@@ -875,6 +1013,9 @@ if (location.protocol === 'http:' || location.protocol === 'https:') {
 if (!params.has('sw0') && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
   try { navigator.serviceWorker?.register('cielo-sw.js').catch(() => {}); } catch (e) { /* ignore */ }
 }
+
+// ?route=<id>：直接启程一条主题航线（验收截图 / 演示用，可配合 ?freeze= 定住第一站）
+if (params.has('route')) startRoute(params.get('route'));
 
 requestAnimationFrame((n) => {
   last = n;

@@ -109,11 +109,26 @@ try {
     // PWA：manifest + service worker + 离线缓存（127.0.0.1 是安全上下文，可注册）
     'wait:1500',
     'log:(async()=>{const hasSW=!!navigator.serviceWorker;const reg=hasSW?await navigator.serviceWorker.getRegistration():null;const mf=await fetch("cielo.webmanifest").then(r=>r.json()).catch(()=>null);const keys=await caches.keys().catch(()=>[]);let hit=false;const k=keys.find(x=>x.startsWith("cielo-"));if(k){hit=!!(await caches.open(k).then(c=>c.match("./CIELO.html")).catch(()=>null));}return JSON.stringify({hasSW,sw:!!reg,manifest:!!mf,manifestLink:!!document.querySelector("link[rel=manifest]"),name:mf&&mf.name,icons:(mf&&mf.icons||[]).length,keys,offlineHit:hit});})()',
+    // ---- 第十二轮：主题航线（数据 src/routes.js，UI 在抄本头部 + 航线条） ----
+    'eval:__cielo.startRoute("architecture")',
+    'wait:900',
+    'log:JSON.stringify({st:__cielo.routeState(),bar:getComputedStyle(document.getElementById("routebar")).display,text:document.getElementById("rb-stop").textContent,view:__cielo.cam.viewIndex,pos:__cielo.cam.pos.map(v=>+v.toFixed(1))})',
+    // 一站停留 10–18 s：等足够久确认真的会推进到第 2 站
+    'wait:18500',
+    'log:JSON.stringify({st:__cielo.routeState(),text:document.getElementById("rb-stop").textContent,view:__cielo.cam.viewIndex})',
+    // 手动拖视角 → 应自动退出航线（用户优先）
+    'tdown:900,400',
+    'tmove:1120,372',
+    'tup:1120,372',
+    'wait:3800',
+    'log:JSON.stringify({st:__cielo.routeState(),bar:getComputedStyle(document.getElementById("routebar")).display})',
+    'shot:' + png('tablet-route.png'),
   ];
   const M = await runShot('tablet', ['--mobile', '--touch', '--dpr=2', '--w=1280', '--h=800', '--url=' + PAGE + '?touch=1&noui=1&q=low'], steps);
 
   const L = M.logs;
   const m0 = L[0] || {}, m1 = L[1] || {}, m2 = L[2] || {}, m3 = L[3] || {}, m4 = L[4] || {}, m5 = L[5] || {}, m6 = L[6] || {}, m7 = L[7] || {}, pwa = L[8] || {};
+  const r0 = L[9] || {}, r1 = L[10] || {}, r2 = L[11] || {};
   ok(m0.isTouch === true, '平板：触屏层未启用（__cielo.isTouch 不是 true）');
   ok(m0.q === 'low', '平板：画质档不是 low，而是 ' + m0.q);
   ok(m0.stats && m0.stats.shadow === false, '平板：阴影没有关（low 档应关阴影）');
@@ -142,6 +157,14 @@ try {
   ok(pwa.icons >= 3, '平板：manifest 图标少于 3 个');
   ok(pwa.sw === true, '平板：service worker 没有注册');
   ok(pwa.offlineHit === true, '平板：离线缓存里没有 CIELO.html');
+  // ---- 主题航线（第十二轮产品改进 B）
+  ok(r0.st && r0.st.id === 'architecture', '平板：航线没有启程（routeState=' + JSON.stringify(r0.st) + '）');
+  ok(r0.bar === 'flex', '平板：航线条没有显示（display=' + r0.bar + '）');
+  ok(/第\s*1\s*\/\s*\d+\s*站/.test(r0.text || ''), '平板：航线条没有显示第 1 站（' + r0.text + '）');
+  ok(r1.st && r1.st.index >= 1, '平板：航线 18 秒后没有推进到下一站（index=' + (r1.st && r1.st.index) + '）');
+  ok(/第\s*2\s*\//.test(r1.text || ''), '平板：航线条没有更新到第 2 站（' + r1.text + '）');
+  ok(r2.st && r2.st.id === null, '平板：手动拖视角后航线没有自动退出（routeState=' + JSON.stringify(r2.st) + '）');
+  ok(r2.bar === 'none', '平板：退出航线后航线条没有收起（display=' + r2.bar + '）');
 
   // ================================================================ 桌面（非触摸）
   const D = await runShot('desktop', ['--w=1280', '--h=720', '--url=' + PAGE + '?noui=1'], [

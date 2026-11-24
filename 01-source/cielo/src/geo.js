@@ -13,10 +13,157 @@ export const mixc = (a, b, t) => [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp
 export const mulc = (a, s) => [a[0] * s, a[1] * s, a[2] * s];
 export const addc = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
 
-export class B {
+// ---------------------------------------------------------------- chunk accumulators
+// 手机崩溃修复（第十二轮）：B 过去把每个顶点 push 进普通 JS number 数组 —— 205 万三角
+// 面 = 6770 万个 double（542 MB）+ 610 万个索引（49 MB），再为上传整块拷贝一份
+// Float32Array/Uint32Array（295 MB），峰值 1.2 GB+；安卓 Chrome 的 renderer 堆上限
+// 只有几百 MB，整个标签页 OOM（sad tab），自带浏览器则是在后面的大模块里分配失败、
+// 被 world.js 的 tag() 捕获 —— 于是"教堂/火车站/大剧院不见了"。
+//
+// chunked 模式把顶点/索引写进固定大小的 Float32Array/Uint32Array 块，永远不产生
+// 大块 JS 数字数组；world.js 按三角形预算分批上传后即可整批释放。默认模式保持
+// 普通数组不变：20 多个几何体检脚本直接读 b.v[i] / b.i[i]，不能动。
+const V_CHUNK = 1 << 18;   // 262,144 floats = 1 MB / chunk
+const I_CHUNK = 1 << 17;   // 131,072 u32   = 512 KB / chunk
+
+class FloatAcc {
   constructor() {
-    this.v = [];
-    this.i = [];
+    this.c = [];        // Float32Array chunks
+    this.used = [];     // how many floats of each chunk are valid (chunks can end partly filled)
+    this.n = 0;         // total floats written (same meaning as Array#length)
+    this.cur = null;
+    this.curN = 0;
+    this.idx = -1;
+  }
+  get length() { return this.n; }
+  _next() {
+    this.cur = new Float32Array(V_CHUNK);
+    this.c.push(this.cur);
+    this.used.push(0);
+    this.idx = this.c.length - 1;
+    this.curN = 0;
+  }
+  // the hot path: one vertex = 11 floats (pos3 normal3 color3 mat2).
+  // 注意一条顶点不能跨块，所以块尾可能留下不到 11 个空位 —— used[] 记的是真实有效长度，
+  // 上传/拼装只能拷 used，不能拷整块（这是第一版分批上传里"整个世界错位 3 个 float"的根因）。
+  write11(a, b, c, d, e, f, g, h, i, j, k) {
+    if (this.cur === null || this.curN + 11 > this.cur.length) this._next();
+    const cur = this.cur;
+    let o = this.curN;
+    cur[o] = a; cur[o + 1] = b; cur[o + 2] = c;
+    cur[o + 3] = d; cur[o + 4] = e; cur[o + 5] = f;
+    cur[o + 6] = g; cur[o + 7] = h; cur[o + 8] = i;
+    cur[o + 9] = j; cur[o + 10] = k;
+    this.curN = o + 11;
+    this.used[this.idx] = this.curN;
+    this.n += 11;
+  }
+  toTypedArray() {
+    const out = new Float32Array(this.n);
+    let off = 0;
+    for (let k = 0; k < this.c.length; k++) {
+      const take = this.used[k];
+      if (take > 0) out.set(this.c[k].subarray(0, take), off);
+      off += take;
+    }
+    return out;
+  }
+  // 复用已有的块：下一批几何直接覆盖写，不再分配 100 MB 级 ArrayBuffer —— 分批上传
+  // 期间不产生垃圾，也就没有"释放几亿字节触发 GC"的启动停顿。
+  reset() {
+    this.n = 0;
+    this.curN = 0;
+    this.cur = this.c.length ? this.c[0] : null;
+    this.idx = this.c.length ? 0 : -1;
+    this.used = this.c.map(() => 0);
+  }
+  // 世界构建结束：把已上传完的块全部放掉（否则这些块会作为"存活"内存挂到页面里，
+  // 手机上等于白白吃掉 100+ MB 配额）。
+  release() {
+    this.c = [];
+    this.used = [];
+    this.cur = null;
+    this.curN = 0;
+    this.n = 0;
+    this.idx = -1;
+  }
+}
+
+class IndexAcc {
+  constructor() {
+    this.c = [];
+    this.used = [];
+    this.n = 0;
+    this.cur = null;
+    this.curN = 0;
+    this.idx = -1;
+  }
+  get length() { return this.n; }
+  _next() {
+    this.cur = new Uint32Array(I_CHUNK);
+    this.c.push(this.cur);
+    this.used.push(0);
+    this.idx = this.c.length - 1;
+    this.curN = 0;
+  }
+  // 3 indices per triangle, but some modules push 6 at a time (a push never spans chunks)
+  push(a, b, c, d, e, f) {
+    if (this.cur === null || this.curN + 6 > this.cur.length) this._next();
+    const cur = this.cur;
+    let o = this.curN;
+    cur[o++] = a;
+    if (b !== undefined) {
+      cur[o++] = b;
+      if (c !== undefined) {
+        cur[o++] = c;
+        if (d !== undefined) {
+          cur[o++] = d;
+          if (e !== undefined) {
+            cur[o++] = e;
+            if (f !== undefined) cur[o++] = f;
+          }
+        }
+      }
+    }
+    this.n += o - this.curN;
+    this.curN = o;
+    this.used[this.idx] = this.curN;
+  }
+  toTypedArray() {
+    const out = new Uint32Array(this.n);
+    let off = 0;
+    for (let k = 0; k < this.c.length; k++) {
+      const take = this.used[k];
+      if (take > 0) out.set(this.c[k].subarray(0, take), off);
+      off += take;
+    }
+    return out;
+  }
+  reset() {
+    this.n = 0;
+    this.curN = 0;
+    this.cur = this.c.length ? this.c[0] : null;
+    this.idx = this.c.length ? 0 : -1;
+    this.used = this.c.map(() => 0);
+  }
+  release() {
+    this.c = [];
+    this.used = [];
+    this.cur = null;
+    this.curN = 0;
+    this.n = 0;
+    this.idx = -1;
+  }
+}
+
+export class B {
+  // opts.chunked: true -> chunked typed accumulators (used by the world builder in
+  // world.js so the whole city never lives in one JS number array). Default false
+  // keeps the plain arrays the geometry check tools index directly.
+  constructor(opts = {}) {
+    this.chunked = !!opts.chunked;
+    this.v = this.chunked ? new FloatAcc() : [];
+    this.i = this.chunked ? new IndexAcc() : [];
     this.n = 0;
     this.stack = [m4.identity()];
     this.cur = m4.identity();
@@ -104,11 +251,30 @@ export class B {
         console.warn('[geo] non-finite in ' + this.tag + ' p=' + JSON.stringify(p) + ' n=' + JSON.stringify(n));
       }
     }
-    this.v.push(p[0], p[1], p[2], n[0], n[1], n[2], c[0], c[1], c[2], mat[0], mat[1]);
+    if (this.chunked) this.v.write11(p[0], p[1], p[2], n[0], n[1], n[2], c[0], c[1], c[2], mat[0], mat[1]);
+    else this.v.push(p[0], p[1], p[2], n[0], n[1], n[2], c[0], c[1], c[2], mat[0], mat[1]);
     return this.n++;
   }
   note(tag) {
     this.tag = tag;
+  }
+  // 构建结束：放掉全部块，别让上传完的几何继续占着 JS 侧内存
+  release() {
+    this.v.release();
+    this.i.release();
+    this.stack = [m4.identity()];
+    this.cur = m4.identity();
+    this.nrm = m4.identity();
+    this.n = 0;
+  }
+  // 清空当前批（chunked 模式复用块；默认模式与新建 B 等价）
+  reset() {
+    if (this.chunked) { this.v.reset(); this.i.reset(); }
+    else { this.v.length = 0; this.i.length = 0; }
+    this.n = 0;
+    this.stack = [m4.identity()];
+    this.cur = m4.identity();
+    this.nrm = m4.identity();
   }
   tri(a, b, c, color, mat = [0, 0.1], na, nb, nc) {
     let N;
@@ -149,8 +315,12 @@ export class B {
     this.i.push(ia, ib, ic, ia, ic, id);
   }
   build(gl) {
+    if (this.chunked) return { verts: this.v.toTypedArray(), indices: this.i.toTypedArray() };
     return { verts: new Float32Array(this.v), indices: new Uint32Array(this.i) };
   }
+  // 顶点/索引的字符串哈希，用于体检脚本确认"同一份源码两次构建完全一致"
+  get vertFloats() { return this.v.length; }
+  get indexCount() { return this.i.length; }
   get triCount() {
     return this.i.length / 3;
   }

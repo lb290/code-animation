@@ -131,6 +131,44 @@ export function mesh(gl, verts, indices, mode) {
 }
 
 
+// 流式上传：geo.js 的 chunked B 把顶点/索引存在一串小块 TypedArray 里。这里先按最终
+// 字节数 bufferData 一个空缓冲，再把每块 bufferSubData 进去 —— 不需要先把整个世界的
+// 顶点拼成一个 270 MB 的 Float32Array（第十二轮手机 OOM 的最后一根稻草）。
+export function meshChunked(gl, b) {
+  const v = b.v, ix = b.i;
+  const vao = gl.createVertexArray();
+  gl.bindVertexArray(vao);
+  const vbo = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+  gl.bufferData(gl.ARRAY_BUFFER, v.length * 4, gl.STATIC_DRAW);
+  // 每块拷"有效长度" used[k]：块尾可能留不到 11 个 float 的空位，拷整块会让后面所有顶点错位
+  let off = 0;
+  for (let k = 0; k < v.c.length; k++) {
+    const take = v.used[k];
+    if (take > 0) gl.bufferSubData(gl.ARRAY_BUFFER, off * 4, v.c[k].subarray(0, take));
+    off += take;
+  }
+  setupAttribs(gl);
+  let ibo = null, count;
+  if (ix.length) {
+    ibo = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, ix.length * 4, gl.STATIC_DRAW);
+    off = 0;
+    for (let k = 0; k < ix.c.length; k++) {
+      const take = ix.used[k];
+      if (take > 0) gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER, off * 4, ix.c[k].subarray(0, take));
+      off += take;
+    }
+    count = ix.length;
+  } else {
+    count = Math.round(v.length / STRIDE);
+  }
+  gl.bindVertexArray(null);
+  const vertCount = Math.round(v.length / STRIDE);
+  return { vao, vbo, ibo, count, mode: gl.TRIANGLES, instances: 0, vertCount, maxIndex: vertCount - 1 };
+}
+
 // Mesh with a caller-defined vertex layout (used by the fish lantern, whose
 // vertices carry surface parameters in attributes 4 and 5).
 export function customMesh(gl, verts, indices, layout, strideFloats) {

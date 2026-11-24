@@ -179,6 +179,46 @@
     border-radius:3px;color:#3b5480;font-family:inherit;font-size:9.5px;text-align:center}
   .gb-foot .tip{margin-left:auto;opacity:.85}
 
+  /* ---------- 第十二轮：主题航线 · 导览巴士 ---------- */
+  .gb-routes-btn{appearance:none;border:1px solid rgba(180,131,47,.45);background:rgba(224,170,78,.12);
+    color:#8a611f;border-radius:999px;padding:6px 14px;font-family:inherit;font-size:11px;letter-spacing:.2em;
+    cursor:pointer;white-space:nowrap;flex:0 0 auto}
+  .gb-routes-btn:hover{background:rgba(224,170,78,.22)}
+  .gb-routes-btn.on{background:#c99436;color:#fff8ea;border-color:#c99436}
+  #gb-routes{flex:0 0 auto;max-height:58%;overflow:auto;padding:18px 30px 22px;
+    border-bottom:1px solid rgba(28,49,96,.14);background:rgba(255,255,255,.5);display:none}
+  #gb-routes.on{display:block}
+  .rt-head{font-size:10px;letter-spacing:.34em;color:#b4832f}
+  .rt-head span{display:block;margin-top:6px;font-family:"Helvetica Neue",Arial,sans-serif;font-size:8.5px;
+    letter-spacing:.24em;color:#93a3c0}
+  .rt-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:16px}
+  .rt-card{border:1px solid rgba(28,49,96,.16);border-radius:12px;padding:14px 15px 12px;
+    background:linear-gradient(170deg,#fffdf8,#f2f7ff);display:flex;flex-direction:column;gap:6px}
+  .rt-card .rt-name{font-size:15px;letter-spacing:.16em;color:#12224a}
+  .rt-card .rt-en{font-family:"Helvetica Neue",Arial,sans-serif;font-size:8px;letter-spacing:.26em;color:#93a3c0}
+  .rt-card .rt-blurb{font-size:12px;line-height:1.75;color:#3a517c;flex:1}
+  .rt-card .rt-meta{font-size:9.5px;letter-spacing:.18em;color:#b4832f}
+  .rt-card button{margin-top:8px;appearance:none;border:none;border-radius:999px;padding:9px 0;
+    background:linear-gradient(180deg,#d8a94e,#bd8628);color:#fffaf0;font-family:inherit;font-size:12.5px;
+    letter-spacing:.28em;cursor:pointer}
+  .rt-card button:active{transform:translateY(1px)}
+  /* 航线条：飞行中常驻，贴在顶部中间，不挡画面中心 */
+  #routebar{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top));transform:translate(-50%,-14px);
+    z-index:13;display:none;align-items:center;gap:14px;padding:9px 12px 9px 18px;border-radius:999px;
+    background:rgba(8,22,46,.62);backdrop-filter:blur(12px);border:1px solid rgba(180,215,255,.28);
+    color:#eaf4ff;font-family:inherit;font-size:12.5px;letter-spacing:.1em;
+    box-shadow:0 16px 44px rgba(4,14,34,.45);opacity:0;transition:opacity .3s,transform .3s;pointer-events:auto}
+  #routebar.on{display:flex;opacity:1;transform:translate(-50%,0)}
+  #routebar .rb-route{color:#f0c778;font-size:11px;letter-spacing:.24em;white-space:nowrap}
+  #routebar .rb-stop{white-space:nowrap}
+  #routebar .rb-stop b{font-weight:400;color:#fff}
+  #routebar .rb-acts{display:flex;gap:6px}
+  #routebar button{appearance:none;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);
+    color:#eaf4ff;border-radius:999px;padding:6px 12px;font-family:inherit;font-size:11px;letter-spacing:.12em;
+    cursor:pointer;white-space:nowrap}
+  #routebar button:active{transform:translateY(1px)}
+  #routebar #rb-exit{background:rgba(226,120,90,.28);border-color:rgba(255,180,150,.4)}
+
   /* ================= 第十一轮：触屏（安卓平板 / 手机） ================= */
   /* 触屏层只在 html.touch 下出现；桌面端连样式都不生效 */
   #touchui{display:none}
@@ -295,6 +335,12 @@
     .gb-list{display:none}
     .gb-art{padding:22px 22px 26px}
     .gb-art h2{font-size:22px}
+    .rt-list{grid-template-columns:1fr}
+    #gb-routes{padding:14px 18px 16px;max-height:64%}
+    #routebar{top:auto;bottom:calc(10px + env(safe-area-inset-bottom));font-size:11.5px;gap:8px;
+      padding:8px 10px 8px 12px;max-width:calc(100vw - 20px)}
+    #routebar .rb-route{display:none}
+    #routebar button{padding:7px 10px;font-size:11px}
     #placecard{left:16px;right:16px;bottom:92px;width:auto}
     .gb-foot .tip{display:none}
   }
@@ -382,8 +428,13 @@
         <span class="gb-cn">城市导览抄本</span>
         <span class="gb-en">THE ALMANAC OF CIELO &nbsp;·&nbsp; KEPT BY THE CITY ARCHIVE</span>
       </div>
+      <button class="gb-routes-btn" id="gb-routes-btn" aria-expanded="false" aria-controls="gb-routes">主题航线</button>
       <div class="gb-prog"><b id="gb-count">0 / 31</b>已抵达 / 全城</div>
     </header>
+    <div id="gb-routes">
+      <div class="rt-head">主题航线 · GUIDED ROUTES<span>选一条线，导览巴士会按顺序带你到每一站（手动操作立即退出）</span></div>
+      <div class="rt-list" id="rt-list"></div>
+    </div>
     <div class="gb-body">
       <nav class="gb-list" id="gb-list"></nav>
       <article class="gb-art" id="gb-article"></article>
@@ -394,6 +445,17 @@
       <span class="tip">每抵达一处，抄本才会显影那一页</span>
     </footer>
   </div>
+</div>
+
+<!-- ---------- 主题航线：飞行中的航线条（第十二轮） ---------- -->
+<div id="routebar">
+  <span class="rb-route" id="rb-route">建筑朝圣</span>
+  <span class="rb-stop" id="rb-stop">第 1 / 7 站 · <b>大教堂全景</b></span>
+  <span class="rb-acts">
+    <button id="rb-read">读这一站</button>
+    <button id="rb-pause">暂停</button>
+    <button id="rb-exit">退出</button>
+  </span>
 </div>
 
 <!-- ---------- 触屏层：左摇杆 / 右升降 / 底部动作条（仅触屏设备显示） ---------- -->
