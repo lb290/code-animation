@@ -1584,7 +1584,7 @@ function ceilPatch(b, yy, cx, cz, rad, col, F, seg, ph) {
 // A soft radial halo under a brilliant star: bright tint at the centre, the field colour
 // at the rim, so it reads as glow instead of a painted disc.
 function ceilHalo(b, yy, cx, cz, rad, col, F, seg) {
-  const c0 = mixc(F, col, 0.80), c1 = mixc(F, col, 0.46);
+  const c0 = mixc(F, col, 0.64), c1 = mixc(F, col, 0.38);
   for (let k = 0; k < seg; k++) {
     const a0 = (k / seg) * TAU, a1 = ((k + 1) / seg) * TAU;
     const Q = (a, rr) => [cx + Math.cos(a) * rad * rr, yy, cz + Math.sin(a) * rad * rr];
@@ -1632,24 +1632,31 @@ function ceilMeteor(b, yy, cx, cz, ang, len, col, F) {
 function cosmosCeiling(b, x0, x1, z0, z1, y, R) {
   const FW = x1 - x0, FD = z1 - z0;
   const NW = 22, NV = 28;                                  // field grid (Gouraud colours)
+  // many small, gentle colour cells instead of a few big washes: the round-9 field read
+  // as flat painted regions where one broad gaussian dominated a whole quarter
   const CS = [
-    [0.17, 0.25, 0.38, CX.rose, 0.84], [0.74, 0.21, 0.34, CX.teal, 0.76],
-    [0.44, 0.57, 0.36, CX.magenta, 0.86], [0.86, 0.70, 0.30, CX.gold, 0.60],
-    [0.12, 0.74, 0.30, CX.violet, 0.74], [0.60, 0.07, 0.28, CX.cyan, 0.56],
-    [0.30, 0.90, 0.26, CX.amber, 0.50],
+    [0.14, 0.30, 0.26, CX.rose, 0.62], [0.70, 0.18, 0.24, CX.teal, 0.60],
+    [0.44, 0.52, 0.26, CX.magenta, 0.64], [0.84, 0.62, 0.24, CX.gold, 0.46],
+    [0.10, 0.70, 0.24, CX.violet, 0.56], [0.56, 0.06, 0.22, CX.cyan, 0.44],
+    [0.30, 0.88, 0.22, CX.amber, 0.40], [0.92, 0.30, 0.20, CX.magenta, 0.42],
+    [0.36, 0.16, 0.20, CX.violet, 0.50], [0.66, 0.44, 0.20, CX.amber, 0.34],
+    [0.24, 0.56, 0.18, CX.cyan, 0.36], [0.78, 0.84, 0.18, CX.teal, 0.32],
   ];
   const fieldCol = (t, s) => {
     let col = CX.base, lum = 0;
     for (let i = 0; i < CS.length; i++) {
       const q = CS[i], dt = t - q[0], ds = s - q[1], rr = q[2];
       const wgt = Math.exp(-(dt * dt + ds * ds) / (rr * rr)) * q[4];
-      if (wgt < 0.012) continue;
+      if (wgt < 0.010) continue;
       lum += wgt;
-      col = mixc(col, q[3], Math.min(0.78, wgt * 0.80));
+      col = mixc(col, q[3], Math.min(0.60, wgt * 0.72));
     }
+    // a slow two-frequency swirl: no patch of the field is ever one flat colour
+    const m = 0.5 + 0.5 * Math.sin(t * 13.7 + s * 17.3 + 1.1) * Math.sin(t * 21.1 - s * 9.7 + 0.4);
+    col = mixc(col, mulc(col, 0.72 + 0.50 * m), 0.55);
     // a very soft brightening along the milky way (belief in the band, no band geometry)
     const g = Math.exp(-Math.pow((s - galS(t)) / 0.115, 2));
-    if (g > 0.02) { col = mixc(col, CX.ice, Math.min(0.16, g * 0.19)); lum += g * 0.7; }
+    if (g > 0.02) { col = mixc(col, CX.ice, Math.min(0.15, g * 0.18)); lum += g * 0.7; }
     const edge = Math.min(1, Math.min(t, 1 - t) * 4.8) * Math.min(1, Math.min(s, 1 - s) * 4.8);
     return { c: mulc(col, 0.80 + 0.20 * edge), l: lum };
   };
@@ -1677,7 +1684,8 @@ function cosmosCeiling(b, x0, x1, z0, z1, y, R) {
       const pcx = cx + Math.cos(a) * rr, pcz = cz + Math.sin(a) * rr * 0.88;
       const pr = rad * (0.20 + R() * 0.15);
       const col = mixc(base, second, R() * 0.55);
-      ceilPatch(b, y - 0.012 - (pIdx % 14) * 0.00055, pcx, pcz, pr, col, F, 10, R() * TAU);
+      const F2 = fieldCol(q[0] + (pcx - cx) / FW, q[1] + (pcz - cz) / FD).c;
+      ceilPatch(b, y - 0.012 - (pIdx % 14) * 0.00055, pcx, pcz, pr, col, F2, 10, R() * TAU);
       pIdx++;
     }
     // a couple of brighter knots so each cloud has a lit centre
@@ -1701,11 +1709,11 @@ function cosmosCeiling(b, x0, x1, z0, z1, y, R) {
     const q = BRIGHT[i];
     const bcx = x0 + FW * q[0], bcz = z0 + FD * q[1];
     const size = (0.50 + q[3] * 0.55) * (0.85 + 0.35 * R());
-    const col = mixc(CX[q[2]], CX.white, 0.22 + R() * 0.30);
+    const col = mixc(CX[q[2]], CX.white, 0.10 + R() * 0.26);
     const F = fieldCol(q[0], q[1]).c;
-    ceilHalo(b, y - 0.0206, bcx, bcz, size * (0.60 + 0.22 * R()), col, F, 12);
-    ceilCross(b, y - 0.0210, bcx, bcz, size * (0.60 + 0.25 * R()),
-      0.030 + R() * 0.012, col, F, R() * TAU);
+    ceilHalo(b, y - 0.0206, bcx, bcz, size * (0.30 + 0.10 * R()), col, F, 12);
+    ceilCross(b, y - 0.0210, bcx, bcz, size * (0.46 + 0.20 * R()),
+      0.022 + R() * 0.010, col, F, R() * TAU);
     bright.push({ x: bcx, z: bcz });
   }
   // ---- three gold constellation figures (thin lines between brilliant stars) ----
