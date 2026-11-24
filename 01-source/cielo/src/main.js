@@ -607,7 +607,8 @@ function showDiag(extra) {
       ' · 观景 ' + VIEWS.length + ' · 抄本 ' + guide.total + ' 页',
     '渲染   绘制 ' + perf.drawCalls + ' 次 · cpu ' + perf.cpuMs.toFixed(1) + ' ms · 已渲染 ' + perf.frames + ' 帧',
     '世界   ' + world.meshes.length + ' 批 · 构建 ' + Math.round(buildMs) + ' ms' +
-      (performance.memory ? ' · JS 堆 ' + (performance.memory.usedJSHeapSize / 1048576).toFixed(0) + ' MB' : ''),
+      (performance.memory ? ' · JS 堆 ' + (performance.memory.usedJSHeapSize / 1048576).toFixed(0) + ' / 上限 ' +
+        (performance.memory.jsHeapSizeLimit / 1048576).toFixed(0) + ' MB（含尚未回收的构建垃圾）' : ''),
     ...(ctx.failures && ctx.failures.length ? ['失败   ' + ctx.failures.map((f) => f.name + ': ' + String(f.msg).slice(0, 70)).join(' | ')] : []),
     '地址   ' + location.href,
   ];

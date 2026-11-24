@@ -444,7 +444,7 @@ node tools/capture.mjs --url=... --mode=path --path=03-notes/cielo-r3-video-path
 
 ~~~powershell
 cd 01-source/cielo
-node build.mjs                        # → 04-output/CIELO.html（977.9 KB 单文件）
+node build.mjs                        # → 04-output/CIELO.html（978.0 KB 单文件）
 node tools/checkall.mjs               # 30 个体检（几何/数据 + 分块构建回归）
 node tools/mobile-check.mjs           # 触屏 + 主题航线 + 桌面回归（需要 Chrome）
 node tools/mem-check.mjs              # 内存/完整性验收（受限堆手机模拟 + 桌面）

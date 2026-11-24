@@ -10,7 +10,7 @@
 
 - **根因是构建期内存峰值，两个现象同一个病**：桌面打开成品后 `usedJSHeapSize = 1276 MB`（安卓 Chrome renderer 堆上限通常 300–500 MB → 整页 OOM/sad tab）；`src/geo.js` 的 `B` 把顶点 push 进普通 JS number 数组 —— 205 万三角 = 6770 万个 double（542 MB）+ 610 万索引（49 MB），上传前再整块拷 Float32Array/Uint32Array（296 MB）。自带浏览器没崩到底，是因为 `world.js` 的 `tag()` 捕获模块异常后继续构建，内存耗尽时刻落在最后几个模块 → cathedral(122,824) / station(101,910) / opera(101,695) 静默缺失。复现：`--js-flags=--max-old-space-size=350` 时只有 city 模块打印完成，之后构建卡死。
 - **修复（只改内存，不动内容）**：`B` 增加 `chunked` 模式（Float32Array/Uint32Array 分块 + 每块有效长度 `used[k]`）；`gl.js` 新增 `meshChunked()`（bufferData 定长 + 逐块 bufferSubData）；`world.js` 按 20 万三角预算在模块边界分批上传（本轮 **7 批**，`world.meshes`），上传后 `reset()` 复用块、构建结束 `release()`；`main.js` 主渲染/阴影 pass 遍历 `world.meshes`。
-- **数字**：JS 堆 **1276 MB → 29 MB**；构建 2155 → 1551 ms；静态三角 **2,048,729 不变**；draw calls **60 → 66**；单文件 `04-output/CIELO.html` **977.9 KB**。
+- **数字**：JS 堆 **1276 MB → 29 MB**；构建 2155 → 1551 ms；静态三角 **2,048,729 不变**；draw calls **60 → 66**；单文件 `04-output/CIELO.html` **978.0 KB**。
 - **静默失败变可见**：新增 `ctx.failures`（模块构建失败 / GPU 上传 `gl.getError()` 非零），`?diag` 显示「世界批数 / 构建 ms / JS 堆 / 失败列表」，控制台同步告警。
 - **开机画质探测**改为跳过前 40 帧再取 120 帧平均，且**只降不升**（触屏默认 low；自动升档会改变用户看到的画质与发热，要更高画质用 `?q=mid|high`）。
 - **新体检**：`tools/geo-acc-check.mjs`（跨块时 chunked 输出与普通数组逐字节相同、`used[]` 覆盖率、`reset()` 复用一致）与 `tools/mem-check.mjs`（受限堆 350 MB 手机模拟 + 桌面，15 条断言：构建完成/无模块失败/分块生效/内容完整/堆 <300MB/帧循环/无异常）。`checkall` 现 **30 项**。
@@ -21,7 +21,7 @@
 
 ~~~powershell
 cd F:/AI/dsh/code-animation/01-source/cielo
-node build.mjs                  # → 04-output/CIELO.html（977.9 KB，单文件，7 批几何）
+node build.mjs                  # → 04-output/CIELO.html（978.0 KB，单文件，7 批几何）
 node tools/checkall.mjs         # 30 项几何/数据体检
 node tools/mobile-check.mjs     # 触屏 + 主题航线 + 桌面回归（需要 Chrome，约 4 分钟）
 node tools/mem-check.mjs        # 内存/完整性验收：受限堆手机模拟 + 桌面
