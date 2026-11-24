@@ -4,17 +4,17 @@
 > 本页只写**现在**；每轮的历史在 [HANDOFF.md](HANDOFF.md)，每天的过程在 [05-daily/](05-daily/)。
 
 <!-- AUTO:START -->
-> 自动生成 · 2026-11-24 23:25 · 运行 `node tools/status.mjs --write` 刷新。下面每一行都是从仓库里读出来的，不靠人记。
+> 自动生成 · 2026-11-25 00:41 · 运行 `node tools/status.mjs --write` 刷新。下面每一行都是从仓库里读出来的，不靠人记。
 
 | 项 | 值 |
 |---|---|
-| 分支 / HEAD（生成时） | `main` @ `bc4faaf` · fix(pwa): service worker 导航改网络优先并升版本，发版后一次刷新即最新 |
+| 分支 / HEAD（生成时） | `main` @ `d9f95f8` · docs(cielo): 第十二轮记录 —— 崩溃合同 / HANDOFF / STATUS / 日记 / 产品方案 |
 | 工作树 | 干净 |
-| 成品 · 天空鲸城 | `04-output/CIELO.html` · 963.3 KB |
+| 成品 · 天空鲸城 | `04-output/CIELO.html` · 977.9 KB |
 | 成品 · 天空之城 · 灯祭 | `04-output/CELESTIA.html` · 145.0 KB |
-| 几何体检 | 28 项（`node tools/checkall.mjs`） |
+| 几何体检 | 30 项（`node tools/checkall.mjs`） |
 | 内容规模 | 观景点 80 · 抄本 31 页 |
-| 最近日记 | `05-daily/2026-11-24.md` |
+| 最近日记 | `05-daily/2026-11-25.md` |
 <!-- AUTO:END -->
 
 ## 0. 一句话
