@@ -1,3 +1,46 @@
+# 交接 · 天空鲸城「CIELO」（2026-11-25 凌晨，第十二轮：手机崩溃（内存）修复 + 主题航线）
+
+> **2026-11-24 23:37**：用户：「先解决两个问题，我发的图片，**1 是在手机上的 chrome 打开崩溃问题**，
+> https://lb290.github.io/code-animation/04-output/CIELO.html 这个。**2 是用手机自带浏览器打开没有显示教堂，
+> 火车站，大剧院**，打开的是这个地址 …。**解决之后提交推送代码，然后再按产品需要的功能迭代开发**。」
+> 配图：① 安卓 Chrome 崩溃页（sad tab）；② 自带浏览器能进城市但 cathedral / station / opera 缺失。
+> 施工合同：[03-notes/cielo-round12-mobile-oom-brief.md](03-notes/cielo-round12-mobile-oom-brief.md)。
+
+## 第十二轮现状（先读这段）
+
+- **根因是构建期内存峰值，两个现象同一个病**：桌面打开成品后 `usedJSHeapSize = 1276 MB`（安卓 Chrome renderer 堆上限通常 300–500 MB → 整页 OOM/sad tab）；`src/geo.js` 的 `B` 把顶点 push 进普通 JS number 数组 —— 205 万三角 = 6770 万个 double（542 MB）+ 610 万索引（49 MB），上传前再整块拷 Float32Array/Uint32Array（296 MB）。自带浏览器没崩到底，是因为 `world.js` 的 `tag()` 捕获模块异常后继续构建，内存耗尽时刻落在最后几个模块 → cathedral(122,824) / station(101,910) / opera(101,695) 静默缺失。复现：`--js-flags=--max-old-space-size=350` 时只有 city 模块打印完成，之后构建卡死。
+- **修复（只改内存，不动内容）**：`B` 增加 `chunked` 模式（Float32Array/Uint32Array 分块 + 每块有效长度 `used[k]`）；`gl.js` 新增 `meshChunked()`（bufferData 定长 + 逐块 bufferSubData）；`world.js` 按 20 万三角预算在模块边界分批上传（本轮 **7 批**，`world.meshes`），上传后 `reset()` 复用块、构建结束 `release()`；`main.js` 主渲染/阴影 pass 遍历 `world.meshes`。
+- **数字**：JS 堆 **1276 MB → 29 MB**；构建 2155 → 1551 ms；静态三角 **2,048,729 不变**；draw calls **60 → 66**；单文件 `04-output/CIELO.html` **977.9 KB**。
+- **静默失败变可见**：新增 `ctx.failures`（模块构建失败 / GPU 上传 `gl.getError()` 非零），`?diag` 显示「世界批数 / 构建 ms / JS 堆 / 失败列表」，控制台同步告警。
+- **开机画质探测**改为跳过前 40 帧再取 120 帧平均，且**只降不升**（触屏默认 low；自动升档会改变用户看到的画质与发热，要更高画质用 `?q=mid|high`）。
+- **新体检**：`tools/geo-acc-check.mjs`（跨块时 chunked 输出与普通数组逐字节相同、`used[]` 覆盖率、`reset()` 复用一致）与 `tools/mem-check.mjs`（受限堆 350 MB 手机模拟 + 桌面，15 条断言：构建完成/无模块失败/分块生效/内容完整/堆 <300MB/帧循环/无异常）。`checkall` 现 **30 项**。
+- **产品改进 B「主题航线 · 导览巴士」**（本轮推进）：`src/routes.js` 三条航线（建筑朝圣 7 站 / 童话奇观 7 站 / 云端秘境 5 站，19 站覆盖 16 个抄本页）；抄本头部「主题航线」面板 → 启程 → 相机 `cam.setView()` 逐站过渡 + 停留 12–16 s；顶部航线条显示「第 N / M 站 · 站名」，可暂停/继续/退出/读这一站；手动操作（摇杆/拖视角/WASD/观景键）在镜头稳定 2.4 s 后被判「用户接管」自动退出。`?route=architecture|wonder|secret` 可直接启程（截图/演示）。
+- **验收**：`node tools/checkall.mjs` **30/30 PASS**；`node tools/mobile-check.mjs` 全 PASS（新增航线断言：启程 → 18 s 内推进到第 2 站 → 手动拖视角自动退出）；`node tools/mem-check.mjs` **15 PASS / 0 FAIL**；旧 vs 新构建同机位截图（view 0/40/70，1280×720，`?noui&freeze=2&tod=day`）**逐像素一致（max diff 0–1）**；手机模拟（`--mobile --touch --dpr=2`、`--js-flags=--max-old-space-size=200`）全量三角、21 模块、`ctx.failures=[]`、JS 堆 29.3 MB。
+
+## 第十二轮 30 秒上手
+
+~~~powershell
+cd F:/AI/dsh/code-animation/01-source/cielo
+node build.mjs                  # → 04-output/CIELO.html（977.9 KB，单文件，7 批几何）
+node tools/checkall.mjs         # 30 项几何/数据体检
+node tools/mobile-check.mjs     # 触屏 + 主题航线 + 桌面回归（需要 Chrome，约 4 分钟）
+node tools/mem-check.mjs        # 内存/完整性验收：受限堆手机模拟 + 桌面
+node tools/serve.mjs --host=0.0.0.0
+~~~
+
+URL 新增：`?batch=<tri>` 调分批上传预算（默认 200000，调试用）、`?route=architecture|wonder|secret` 直接启程主题航线（可配 `?freeze=` 截图）。
+
+## 第十二轮已知遗留 / 注意
+
+1. **显存没变小**：顶点缓冲仍是 2.05M tri（≈271 MB VBO + 25 MB IBO，7 个 buffer）。本轮修的是 JS 堆崩溃；若真机仍报 `CONTEXT_LOST_WEBGL`，下一步做**移动端几何降级**（从 city 776k tri 起按档减细分，不删内容）。
+2. **城市单批 776,371 tri**（≈103 MB JS 峰值）：批次边界落在模块边界上，city 一个模块就超预算，所以它是单批上限。要更小只能把 city 内部再切段（需给模块加 flush 钩子）。
+3. **航线条在窄屏**（`max-width:820px`）贴底显示；真机若与明信片/卡片遮挡再上移。
+4. **航线站间是直线镜头过渡**（只过渡位置不做避障），会穿墙 —— 属「导览车」可接受范围；退出航线**不恢复**用户原机位（退出即停在当前站，想回去按露台/观景键）。
+5. **抄本不自动打开**：原方案写「每站自动翻页」，实现改成航线条上的「读这一站」按钮（抄本是全屏面板，自动打开会挡住要看的画面）；抵达仍静默记为已显影。
+6. **真机帧率仍未测**：只有 headless 相对数据（1280×720：high 17.8 ms/帧）。下一轮请真机 `?perf=1` 记录三档 × 3 观景点。
+7. **lore 的 `zone.view` 有多处与观景点序号错位**（如 cathedral→43、opera→54、throne→25），航线按名字/语义配对、用 lore id 打开，不依赖 `zone.view`；下一轮若改抄本 zone 需同步复查 routes-check。
+
+---
 # 交接 · 天空鲸城「CIELO」（2026-11-24 晚，第十一轮：安卓平板 + 抄本「景」+ 沙龙星空）
 
 > **2026-11-24 · 第十一轮**：用户：「你作为产品负责人兼技术，继续完善天空鲸城。① 提交并推送代码；② 规定好工作记录格式，为了新开会话也能知道项目情况；③ 天空鲸城需要支持安卓平板使用，局域网连接电脑访问或安卓平板独立运行都可以；④ 你再列出两个产品改进方案并推进一个。」

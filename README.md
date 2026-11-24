@@ -39,7 +39,7 @@ CIELO 支持触屏：左半屏按住拖动 = 摇杆飞行，右半屏拖动 = �
 |---|---|---|
 | **局域网（电脑当服务器）** | 电脑上 `cd 01-source/cielo` → `node tools/serve.mjs --host=0.0.0.0`，它会打印 `http://192.168.x.x:8099/CIELO.html`；平板连同一个 WiFi，用 Chrome 打开这个地址 | 真机联调、改完立刻看 |
 | **装到平板主屏幕（推荐，可离线）** | 平板 Chrome 打开 <https://lb290.github.io/code-animation/04-output/CIELO.html> → 菜单「添加到主屏幕 / 安装应用」；装好后断网也能打开（service worker 缓存单文件） | 日常玩、出门看 |
-| **单文件带走** | 把 `04-output/CIELO.html`（约 0.9 MB）拷到平板，用 Chrome 打开本地文件 | 完全没有网络时 |
+| **单文件带走** | 把 `04-output/CIELO.html`（约 0.96 MB）拷到平板或手机，用浏览器打开本地文件 | 完全没有网络时 |
 
 画质档可以用 URL 参数强制：`?q=low|mid|high`（默认：触屏 low、桌面 high；开局 150 帧后还会按实测帧时间自动调一档）。`?touch=0` 可在平板上退回桌面式键盘操作。
 
@@ -444,11 +444,15 @@ node tools/capture.mjs --url=... --mode=path --path=03-notes/cielo-r3-video-path
 
 ~~~powershell
 cd 01-source/cielo
-node build.mjs                        # → 04-output/CIELO.html
-node tools/checkall.mjs               # 28 个体检
+node build.mjs                        # → 04-output/CIELO.html（977.9 KB 单文件）
+node tools/checkall.mjs               # 30 个体检（几何/数据 + 分块构建回归）
+node tools/mobile-check.mjs           # 触屏 + 主题航线 + 桌面回归（需要 Chrome）
+node tools/mem-check.mjs              # 内存/完整性验收（受限堆手机模拟 + 桌面）
 ~~~
 
-观景点新增 78「云上茶席」/ 79「茶席长桌」/ 80「镜池仰观」（`Z X` 翻到最后一组）。
+观景点 80 个（新增 78「云上茶席」/ 79「茶席长桌」/ 80「镜池仰观」，`Z X` 翻到最后一组）。
+
+**第十二轮**：手机端崩溃的根因是构建期 JS 堆峰值 1.2 GB（安卓 Chrome renderer 上限几百 MB）——几何改为分块 TypedArray 累积 + 7 批流式上传后降到 29 MB；同时加了三条**主题航线**（抄本头部「主题航线」→ 启程，或 `?route=architecture|wonder|secret`），以及 `?diag` 里的世界批数/JS 堆/失败列表。详见 [HANDOFF.md](HANDOFF.md)。
 ## 方法论（来自 03-notes/techniques.md）
 
 1. **shots as data**：一个时间轴统治画面/配乐/字幕，改一处时间全片跟着走
