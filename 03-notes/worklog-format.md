@@ -17,6 +17,8 @@
 写作顺序：**先合同（brief）→ 边做边留日记要点 → 收尾更新 STATUS + HANDOFF**。
 `STATUS.md` 里的"事实块"（HEAD、工作树、成品大小、体检项数、观景点/抄本数量、最近日记）**不要手写**，运行：
 
+> 事实块是**生成那一刻的快照**：刚提交完再刷新，它会显示提交前的 HEAD（差一格是正常的，以 `git log --oneline -3` 为准）。
+
 ```powershell
 node tools/status.mjs --write     # 刷新 STATUS.md 的 AUTO 块并打印摘要
 node tools/status.mjs             # 只打印，不改文件

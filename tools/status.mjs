@@ -68,7 +68,7 @@ const block = [
   '',
   '| 项 | 值 |',
   '|---|---|',
-  `| 分支 / HEAD | \`${branch}\` @ \`${head}\` · ${subject} |`,
+  `| 分支 / HEAD（生成时） | \`${branch}\` @ \`${head}\` · ${subject} |`,
   `| 工作树 | ${dirtyLine} |`,
   outputs.map((o) => `| 成品 · ${o.name} | \`${o.rel}\` · ${o.size} |`).join('\n'),
   `| 几何体检 | ${checks.length} 项（\`node tools/checkall.mjs\`） |`,

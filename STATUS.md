@@ -8,8 +8,8 @@
 
 | 项 | 值 |
 |---|---|
-| 分支 / HEAD | `main` @ `027315a` · docs: 工作记录规范 + STATUS 现状页 + 自动事实块 + 平板用法 |
-| 工作树 | 干净 |
+| 分支 / HEAD（生成时） | `main` @ `ef0eadd` · docs: 工作记录规范 + STATUS 现状页 + 自动事实块 + 平板用法 |
+| 工作树 | 2 个改动（3-notes/worklog-format.md、tools/status.mjs） |
 | 成品 · 天空鲸城 | `04-output/CIELO.html` · 957.9 KB |
 | 成品 · 天空之城 · 灯祭 | `04-output/CELESTIA.html` · 145.0 KB |
 | 几何体检 | 28 项（`node tools/checkall.mjs`） |
