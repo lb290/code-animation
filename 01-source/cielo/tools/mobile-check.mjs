@@ -123,16 +123,32 @@ try {
     'wait:3800',
     'log:JSON.stringify({st:__cielo.routeState(),bar:getComputedStyle(document.getElementById("routebar")).display})',
     'shot:' + png('tablet-route.png'),
+    // ---- 第十三轮：画质档（设备像素级输出 + 三档切换） ----
+    'eval:__cielo.cycleQuality(1)',
+    'wait:900',
+    'log:JSON.stringify({q:__cielo.quality(),res:__cielo.res(),btn:!!document.querySelector("[data-act=quality]")})',
+    'shot:' + png('tablet-quality-fine.png'),
+    'eval:__cielo.cycleQuality(-1)',
+    'wait:700',
+    'log:JSON.stringify({q:__cielo.quality()})',
   ];
-  const M = await runShot('tablet', ['--mobile', '--touch', '--dpr=2', '--w=1280', '--h=800', '--url=' + PAGE + '?touch=1&noui=1&q=low'], steps);
+  const M = await runShot('tablet', ['--mobile', '--touch', '--dpr=2', '--w=1280', '--h=800', '--url=' + PAGE + '?touch=1&noui=1'], steps);
 
   const L = M.logs;
   const m0 = L[0] || {}, m1 = L[1] || {}, m2 = L[2] || {}, m3 = L[3] || {}, m4 = L[4] || {}, m5 = L[5] || {}, m6 = L[6] || {}, m7 = L[7] || {}, pwa = L[8] || {};
   const r0 = L[9] || {}, r1 = L[10] || {}, r2 = L[11] || {};
   ok(m0.isTouch === true, '平板：触屏层未启用（__cielo.isTouch 不是 true）');
-  ok(m0.q === 'low', '平板：画质档不是 low，而是 ' + m0.q);
-  ok(m0.stats && m0.stats.shadow === false, '平板：阴影没有关（low 档应关阴影）');
-  ok(m0.stats && m0.stats.scale <= 0.7, '平板：渲染倍率没有降下来，scale=' + (m0.stats && m0.stats.scale));
+  // 第十三轮：触屏默认「精细」，跑不动的设备由开局探测自动降档 + 自适应分辨率兜底。
+  ok(m0.q === 'high', '平板：默认画质档不是「精细」high，而是 ' + m0.q);
+  ok(m0.stats && m0.stats.shadow === false, '平板：触屏上阴影没有被关掉（2M tri 的第二次绘制扛不住）');
+  // 第十三轮核心回归：旧版 canvas 只有 innerWidth*0.6（这里是 768 宽）且完全没算 dpr，
+  // 在 dpr=2 的手机上等于渲染 0.87 MP 再放大 3.3 倍。新模型输出画布必须贴着设备像素。
+  const st = m0.stats || {};
+  ok(st.outW >= 1280 * 1.6, '平板：输出画布没有按设备像素出（outW=' + st.outW + '，期望 >=2048）');
+  ok(st.outW * st.outH <= 3.4e6 * 1.08, '平板：输出像素超出「精细」档预算（outPx=' + (st.outW * st.outH) + '）');
+  ok(st.scenePx >= 0.85e6 && st.scenePx <= 3.2e6 * 1.05, '平板：场景像素预算不在 high 区间（scenePx=' + st.scenePx + '）');
+  ok(st.sceneEff >= 0.85e6, '平板：场景实际渲染像素过低（sceneEff=' + st.sceneEff + '）');
+  ok(st.srcW >= 1500, '平板：场景内部分辨率过低（srcW=' + st.srcW + '，旧版是 768）');
   ok(m0.ui === 'block', '平板：触屏 UI 没有显示，display=' + m0.ui);
   ok(m0.menu !== 'none', '平板：右下 ☰ 菜单按钮没有显示');
   ok(m0.bar === 'none', '平板：动作条没有默认收起（display=' + m0.bar + '）');
@@ -165,6 +181,12 @@ try {
   ok(/第\s*2\s*\//.test(r1.text || ''), '平板：航线条没有更新到第 2 站（' + r1.text + '）');
   ok(r2.st && r2.st.id === null, '平板：手动拖视角后航线没有自动退出（routeState=' + JSON.stringify(r2.st) + '）');
   ok(r2.bar === 'none', '平板：退出航线后航线条没有收起（display=' + r2.bar + '）');
+  // ---- 第十三轮：画质按钮 / 三档切换 / 精细档输出更高 ----
+  const q0 = L[12] || {}, q1 = L[13] || {};
+  ok(q0.btn === true, '平板：动作条里没有「画质」按钮');
+  ok(q0.q === 'low', '平板：点「画质」没有从「精细」切到「流畅」（q=' + q0.q + '）');
+  ok(q0.res && q0.res.outPx < st.outPx, '平板：流畅档的输出预算没有比精细低（' + (q0.res && q0.res.outPx) + ' vs ' + st.outPx + '）');
+  ok(q1.q === 'high', '平板：画质没有循环回「精细」（q=' + q1.q + '）');
 
   // ================================================================ 桌面（非触摸）
   const D = await runShot('desktop', ['--w=1280', '--h=720', '--url=' + PAGE + '?noui=1'], [
@@ -176,6 +198,7 @@ try {
   ok(d0.isTouch === false, '桌面：触屏层被误启用');
   ok(d0.q === 'high', '桌面：默认画质不是 high，而是 ' + d0.q);
   ok(d0.stats && d0.stats.shadow === true, '桌面：高画质下阴影被误关');
+  ok(d0.stats && d0.stats.outW === 1280 && d0.stats.outH === 720, '桌面：dpr=1 时输出画布应 1:1（out=' + d0.stats.outW + 'x' + d0.stats.outH + '）');
   ok(d0.ui === 'none', '桌面：触屏 UI 被显示出来，display=' + d0.ui);
   ok(d0.buttons >= 10, '桌面：触屏按钮 DOM 缺失（不影响显示，但应存在）');
   ok(d0.card === false, '桌面：抵达卡片仍然自动弹出（应改为静默记入抄本）');

@@ -40,13 +40,13 @@ function placeOf(pos) {
   return best;
 }
 
-export function createPostcard({ gl, W, cam, toast, todLabel, setScale }) {
+export function createPostcard({ gl, W, cam, toast, todLabel, getPx, setPx, lock }) {
   const overlay = document.getElementById('postcard');
   const imgEl = document.getElementById('pc-img');
   const saveBtn = document.getElementById('pc-save');
   const shareBtn = document.getElementById('pc-share');
   const closeBtn = document.getElementById('pc-close');
-  let state = null;          // { phase:'boost'|'capture', prevScale }
+  let state = null;          // { phase:'boost'|'capture', prevPx }
   let lastDataUrl = '';
   let lastBlob = null;
 
@@ -175,25 +175,30 @@ export function createPostcard({ gl, W, cam, toast, todLabel, setScale }) {
   function open() {
     if (!overlay) return;
     if (state) return;
-    state = { phase: 'boost', prevScale: W.scale };
+    state = { phase: 'boost', prevPx: getPx ? getPx() : 0 };
     toast?.('正在冲洗这张明信片…', 1600);
     overlay.classList.remove('show');
-    setScale(1.0);
+    // 第十三轮：出片要清晰 —— 场景内部像素预算临时抬到不低于输出画布（只多渲染一帧）。
+    // 同时锁住自适应调节器，避免这一帧被"性能优先"降回去。
+    lock?.(true);
+    const outPx = (W.outW || 0) * (W.outH || 0);
+    if (setPx && outPx > 0) setPx(Math.max(outPx, getPx ? getPx() : 0));
   }
 
   // main.js 每帧合成之后调用；两帧完成一次出片：第一帧抬倍率，第二帧截图
   function onFrame(/* frameW, frameH */) {
     if (!state) return false;
     if (state.phase === 'boost') { state.phase = 'capture'; return false; }
-    const w = W.w, h = W.h;
+    const w = W.outW, h = W.outH;
     const buf = new Uint8Array(w * h * 4);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, buf);
     let url = '';
     try { url = compose({ w, h, rgba: buf }); } catch (e) { console.warn('[postcard] compose failed', e); }
-    const prev = state.prevScale;
+    const prev = state.prevPx;
     state = null;
-    setScale(prev);
+    if (setPx && prev > 0) setPx(prev);
+    lock?.(false);
     if (url) show(url);
     else toast?.('明信片生成失败，请再试一次', 2200);
     return true;

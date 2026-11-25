@@ -17,6 +17,7 @@ import postVs from './glsl/post.vs.glsl';
 import brightFs from './glsl/bright.fs.glsl';
 import blurFs from './glsl/blur.fs.glsl';
 import compositeFs from './glsl/composite.fs.glsl';
+import upscaleFs from './glsl/upscale.fs.glsl';
 
 const P = head + noise;
 
@@ -37,3 +38,4 @@ export const POST_VS = P + postVs;
 export const BRIGHT_FS = P + brightFs;
 export const BLUR_FS = P + blurFs;
 export const COMPOSITE_FS = P + compositeFs;
+export const UPSCALE_FS = P + upscaleFs;

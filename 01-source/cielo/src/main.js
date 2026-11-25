@@ -45,18 +45,29 @@ const DBG_FOV = params.has('fov') ? Number(params.get('fov')) : 55;
 const TOD = params.has('tod') ? String(params.get('tod')).toLowerCase() : 'day';
 const FW = params.has('fw') ? Number(params.get('fw')) : null;
 
-// ---------------------------------------------------------------- round 11: touch + quality
-// 触屏设备默认低画质档（关阴影 + 降分辨率），桌面保持高画质；?touch=0/1 可强制，
-// ?q=low|mid|high 可手动指定（对比画质与性能时用）。
+// ---------------------------------------------------------------- round 11/13: touch + quality
+// 第十三轮把画质档从「CSS 像素的百分数」改成**像素预算**——用户反馈手机端"不卡了但建筑很粗糙"，
+// 根因是旧模型 canvas 只有 innerWidth*0.6 个 CSS 像素、完全没算 devicePixelRatio：在 dpr 2~3 的
+// 手机上等于先渲染 0.87 MP 再被浏览器放大 3~4 倍。新模型把三件事分开：
+//   · outCap/outDpr 输出画布（合成/锐化在这一档分辨率跑，dpr≤2 时与屏幕 1:1）
+//   · px0/pxMin/pxMax 场景内部 HDR 目标的像素预算，由自适应调节器按 GPU 时间在区间内挑最优点
+//   · gpuMs 每帧允许的 GPU 时间；sharpen 放大时的锐化；fxaa 内部分辨率抗锯齿；lights 点光数
+// ?touch=0/1 可强制触屏形态，?q=low|mid|high 可手动指定档位（触屏菜单里也有「画质」按钮）。
 const FORCED_TOUCH = params.has('touch') ? params.get('touch') !== '0' : null;
 const TOUCH = FORCED_TOUCH !== null ? FORCED_TOUCH : detectTouch();
 const TIERS = {
-  high: { shadow: true,  scale: 1.00, min: 0.55, max: 1.00, adaptMs: 27, fxaa: 1, lights: 12 },
-  mid:  { shadow: false, scale: 0.80, min: 0.50, max: 0.85, adaptMs: 30, fxaa: 1, lights: 10 },
-  low:  { shadow: false, scale: 0.60, min: 0.40, max: 0.68, adaptMs: 34, fxaa: 0, lights: 8 },
+  high: { shadow: true,  outCap: 3.4e6, outDpr: 2, px0: 1.90e6, pxMin: 0.90e6, pxMax: 3.20e6, gpuMs: 12.5, fxaa: 1, sharpen: 0.28, lights: 12, sky: 1 },
+  mid:  { shadow: false, outCap: 2.7e6, outDpr: 2, px0: 1.35e6, pxMin: 0.78e6, pxMax: 2.30e6, gpuMs: 13.5, fxaa: 1, sharpen: 0.42, lights: 10, sky: 1 },
+  low:  { shadow: false, outCap: 2.2e6, outDpr: 2, px0: 0.95e6, pxMin: 0.55e6, pxMax: 1.70e6, gpuMs: 14.5, fxaa: 1, sharpen: 0.55, lights: 8,  sky: 0 },
 };
-const TIER_CN = { high: '高', mid: '中', low: '流畅' };
-let QNAME = String(params.get('q') || (TOUCH ? 'low' : 'high')).toLowerCase();
+const TIER_ORDER = ['low', 'mid', 'high'];
+const TIER_CN = { high: '精细', mid: '均衡', low: '流畅' };
+// 画质档位选择要跨会话记住：用户在手机上选了「精细」，下次打开不该又回到默认。
+const Q_KEY = 'cielo.q.v1';
+const loadQuality = () => { try { return localStorage.getItem(Q_KEY) || ''; } catch { return ''; } };
+// 触屏默认「精细」：第十三轮的实测里，精细档（场景 1.9 MP + 输出=设备像素）比均衡档
+// 的锐度高一倍；跑不动的设备由开局探测自动降一档、之后交给自适应分辨率兜底。
+let QNAME = String(params.get('q') || loadQuality() || 'high').toLowerCase();
 if (!TIERS[QNAME]) QNAME = 'high';
 let Q = TIERS[QNAME];
 if (TOUCH) document.documentElement.classList.add('touch');
@@ -73,6 +84,7 @@ const P = {
   bright: program(gl, S.POST_VS, S.BRIGHT_FS, 'bright'),
   blur: program(gl, S.POST_VS, S.BLUR_FS, 'blur'),
   comp: program(gl, S.POST_VS, S.COMPOSITE_FS, 'comp'),
+  up: program(gl, S.POST_VS, S.UPSCALE_FS, 'up'),
   depth: program(gl, S.DEPTH_VS, S.DEPTH_FS, 'depth'),
 };
 
@@ -117,7 +129,9 @@ console.log('[main] fireworks systems: ' + fireworks.systems.map((s) => s.name +
 const SHADOW = { size: 2048, rt: null, proj: null, view: null, vp: new Float32Array(16), on: !OFF.has('shadow') };
 try { SHADOW.rt = makeDepthRT(gl, SHADOW.size); } catch (e) { SHADOW.on = false; console.warn('shadow off', e); }
 // 移动质量档：阴影是 2M tri 的第二次整场景绘制，中/低档直接关掉（本轮最大的帧时间来源）。
-if (!Q.shadow) SHADOW.on = false;
+// 触屏上连「精细」档也不开阴影 —— 那是与分辨率无关的固定几何成本，手机扛不住，
+// 「精细」在手机上的含义是更高像素预算 + 更多点光，不是阴影。
+if (!Q.shadow || TOUCH) SHADOW.on = false;
 {
   const center = [0, 6, -50];
   const lightDir = norm(LOOK.sunDir);            // points toward the sun
@@ -178,29 +192,163 @@ if (params.has('tour')) {
   cam.update(0.0001);
 }
 
-// ---------------------------------------------------------------- render targets
-const W = { value: 1600, h: 900, scale: Q.scale };
-const ADAPT = { t: 0, n: 0, min: Q.min, max: Q.max, hi: Q.adaptMs, lo: Q.adaptMs * 0.55, cool: 0 };
-let rtScene = null, rtBloomA = null, rtBloomB = null, rtScene2 = null;
+// ---------------------------------------------------------------- 第十三轮：分辨率模型
+// 输出画布与场景内部解耦：scenePx 是内部 HDR 渲染目标的像素预算（自适应），
+// 输出画布尽量贴着设备像素（dpr 上限 OUT_DPR_CAP，且不超过档位 outCap），
+// 合成后由一个「放大 + 锐化 + 晕影 + 颗粒」pass 在输出分辨率收尾 —— 低分辨率的场景
+// 也能在屏幕上得到锐利的边、而不是被浏览器双线性放大成一团糊。
+const DPR = Math.max(1, Math.min(window.devicePixelRatio || 1, 3));
+const OUT_DPR_CAP = 2;
+const W = { outW: 1280, outH: 720, srcW: 1280, srcH: 720, scale: 1, cssW: 1280, cssH: 720, outScale: 1 };
+let scenePx = Q.px0;
+// 输出分辨率系数：极弱设备连场景像素降到最低都还超预算时（说明瓶颈在输出分辨率的
+// 放大/合成 pass），才把它往下调 —— 这是最后一道保险，默认 1.0。
+let outMul = 1;
+// ?gputarget=<ms> 强制自适应目标（验收脚本用：desktop 上把它设成 3 ms 就能看到"降档"分支）
+const GPU_TARGET = params.has('gputarget') ? Number(params.get('gputarget')) : 0;
+let rtScene = null, rtBloomA = null, rtBloomB = null, rtScene2 = null, rtLdr = null;
+const clampPx = (p) => Math.min(Q.pxMax, Math.max(Q.pxMin, p));
 
-function resize() {
-  const w = Math.max(320, Math.floor(window.innerWidth * W.scale));
-  const h = Math.max(200, Math.floor(window.innerHeight * W.scale));
-  canvas.width = w;
-  canvas.height = h;
-  canvas.style.width = window.innerWidth + 'px';
-  canvas.style.height = window.innerHeight + 'px';
-  W.w = w; W.h = h;
-  for (const rt of [rtScene, rtBloomA, rtBloomB, rtScene2]) if (rt) freeRT(gl, rt);
-  rtScene = makeRT(gl, w, h, { depth: true });
-  const bw = Math.max(80, Math.floor(w / 2)), bh = Math.max(50, Math.floor(h / 2));
-  rtBloomA = makeRT(gl, bw, bh, {});
-  rtBloomB = makeRT(gl, bw, bh, {});
-  rtScene2 = makeRT(gl, Math.max(80, Math.floor(w / 4)), Math.max(50, Math.floor(h / 4)), {});
+function layout() {
+  const cw = Math.max(320, window.innerWidth), ch = Math.max(200, window.innerHeight);
+  // ---- 输出画布：贴着设备像素出，dpr 高于 2 的部分交给浏览器（再高的屏 dpr 收益极低、成本翻倍）
+  let os = Math.min(DPR, OUT_DPR_CAP) * outMul;
+  let ow = Math.max(320, Math.round(cw * os));
+  let oh = Math.max(200, Math.round(ch * os));
+  const outBudget = Q.outCap * outMul * outMul;
+  if (ow * oh > outBudget) {
+    const k = Math.sqrt(outBudget / (ow * oh));
+    ow = Math.max(320, Math.round(ow * k));
+    oh = Math.max(200, Math.round(oh * k));
+    os = ow / cw;
+  }
+  // ---- 场景内部：由 scenePx 预算 + CSS 宽高比推出（保证像素数近似等于预算）
+  // 场景像素不必超过输出像素（超过就是超采样，成本翻倍换不到观感）：预算保留原值
+  // （旋转屏幕 / 拉大窗口后能自己长回去），实际尺寸用 effective = min(预算, 输出)。
+  const effPx = Math.min(scenePx, ow * oh);
+  const aspect = cw / ch;
+  const sw = Math.max(320, Math.round(Math.sqrt(effPx * aspect)));
+  const sh = Math.max(200, Math.round(sw / aspect));
+  const changed = !rtScene || rtScene.w !== sw || rtScene.h !== sh;
+  W.cssW = cw; W.cssH = ch;
+  W.outW = ow; W.outH = oh; W.outScale = os;
+  W.srcW = sw; W.srcH = sh; W.scale = sw / cw;
+  if (canvas.width !== ow || canvas.height !== oh) { canvas.width = ow; canvas.height = oh; }
+  if (changed) {
+    for (const rt of [rtScene, rtBloomA, rtBloomB, rtScene2, rtLdr]) if (rt) freeRT(gl, rt);
+    rtScene = makeRT(gl, sw, sh, { depth: true });
+    const bw = Math.max(80, Math.floor(sw / 2)), bh = Math.max(50, Math.floor(sh / 2));
+    rtBloomA = makeRT(gl, bw, bh, {});
+    rtBloomB = makeRT(gl, bw, bh, {});
+    rtScene2 = makeRT(gl, Math.max(80, Math.floor(sw / 4)), Math.max(50, Math.floor(sh / 4)), {});
+    // 合成结果先落 LDR（RGBA8），放大 pass 再在输出分辨率上采样它
+    rtLdr = makeRT(gl, sw, sh, { internal: gl.RGBA8, type: gl.UNSIGNED_BYTE });
+  }
 }
-window.addEventListener('resize', () => resize());
-resize();
+function resize() { layout(); }
+window.addEventListener('resize', () => layout());
+// ?px=<像素数> 可强制场景内部预算（对比截图 / 排查画质用）
+const PX_KEY = 'cielo.px.v2';
+function loadPx(name) {
+  try { const v = Number((JSON.parse(localStorage.getItem(PX_KEY) || '{}'))[name]); return v > 0 ? v : 0; } catch { return 0; }
+}
+function savePx(name, px) {
+  try { const j = JSON.parse(localStorage.getItem(PX_KEY) || '{}'); j[name] = Math.round(px); localStorage.setItem(PX_KEY, JSON.stringify(j)); } catch { /* 隐私模式忽略 */ }
+}
+if (params.has('px')) scenePx = Number(params.get('px')) || scenePx;
+else { const st = loadPx(QNAME); if (st) scenePx = st; }
+scenePx = clampPx(scenePx);
+layout();
 const quadMesh = quad(gl);
+
+// ---- 自适应分辨率：优先用 GPU 计时器（真实 GPU ms，不受 vsync 量化），拿不到就退化到帧时间
+const GPU_TIMER = gl.getExtension('EXT_disjoint_timer_query_webgl2');
+let tqCur = null, tqPrev = null, gpuMs = 0;
+function gpuBegin() {
+  if (!GPU_TIMER || tqCur || tqPrev) return;
+  tqCur = gl.createQuery();
+  gl.beginQuery(GPU_TIMER.TIME_ELAPSED_EXT, tqCur);
+}
+function gpuEnd() {
+  if (!GPU_TIMER || !tqCur) return;
+  gl.endQuery(GPU_TIMER.TIME_ELAPSED_EXT);
+  tqPrev = tqCur; tqCur = null;
+}
+function gpuPoll() {
+  if (!tqPrev) return -1;
+  let ok = false;
+  try { ok = gl.getQueryParameter(tqPrev, gl.QUERY_RESULT_AVAILABLE); } catch (e) { ok = false; }
+  if (!ok) return -1;
+  let ms = 0;
+  try {
+    if (GPU_TIMER && gl.getParameter(GPU_TIMER.GPU_DISJOINT_EXT)) { gl.deleteQuery(tqPrev); tqPrev = null; return -1; }
+    ms = gl.getQueryParameter(tqPrev, gl.QUERY_RESULT) / 1e6;
+  } catch (e) { ms = 0; }
+  gl.deleteQuery(tqPrev); tqPrev = null;
+  if (!(ms > 0 && ms < 250)) return -1;
+  return ms;
+}
+
+// 调节器状态：每 30 帧一个窗口；窗口里没有"超预算帧"的比例决定方向。
+const ADAPT = { n: 0, gpuSum: 0, gpuN: 0, dtSum: 0, dtMin: 999, cool: 3, settle: 0, lastSave: 0, measure: 0 };
+let adaptLock = false;   // 明信片等"要一帧高分辨率"的功能会临时锁住调节器
+
+function adaptStep(dtRaw) {
+  const g = gpuPoll();
+  if (g >= 0) {
+    gpuMs = gpuMs ? gpuMs * 0.75 + g * 0.25 : g;
+    ADAPT.gpuSum += g; ADAPT.gpuN++;
+  }
+  if (FREEZE >= 0 || !started || adaptLock || OFF.has('adapt')) return;
+  ADAPT.dtSum += dtRaw * 1000;
+  if (dtRaw * 1000 < ADAPT.dtMin) ADAPT.dtMin = dtRaw * 1000;
+  ADAPT.n++;
+  if (ADAPT.n < 30) return;
+  const avgGpu = ADAPT.gpuN ? ADAPT.gpuSum / ADAPT.gpuN : -1;
+  const avgDt = ADAPT.dtSum / ADAPT.n;
+  const vsync = Math.min(ADAPT.dtMin, 33.4);
+  ADAPT.n = 0; ADAPT.gpuSum = 0; ADAPT.gpuN = 0; ADAPT.dtSum = 0; ADAPT.dtMin = 999;
+  // 开局 2.5 s 不调：着色器编译 + 构建期 GC 抖动会骗过调节器（第十二轮的教训）
+  if (bootN >= 0) return;
+  const target = GPU_TARGET || Q.gpuMs;
+  let action = 0;
+  const adb = params.has('adaptlog');
+  if (avgGpu > 0) {
+    ADAPT.measure = avgGpu;
+    if (avgGpu > target * 1.08) action = -1;
+    else if (avgGpu < target * 0.80) action = 1;
+  } else {
+    // 没有 GPU 计时器：帧时间被 vsync 量化，只能用"是否超过一个刷新周期"判断
+    ADAPT.measure = avgDt;
+    if (avgDt > vsync * 1.30) action = -1;
+    else if (avgDt < vsync * 1.04) action = 1;
+  }
+  if (adb) console.log('[adapt] gpu ' + avgGpu.toFixed(2) + ' dt ' + avgDt.toFixed(1) + ' target ' + target +
+    ' px ' + (scenePx / 1e6).toFixed(2) + ' outMul ' + outMul + ' action ' + action + ' cool ' + ADAPT.cool);
+  if (ADAPT.cool > 0) { ADAPT.cool--; return; }
+  if (action < 0) {
+    const next = clampPx(scenePx * 0.86);
+    if (next < scenePx - 1e5) {
+      scenePx = next; ADAPT.cool = 3; ADAPT.settle = 0; layout();
+    } else if (W.srcW * W.srcH <= Q.pxMin * 1.03 && outMul > 0.63) {
+      // 场景像素已经到底还超预算 → 瓶颈在输出分辨率的合成/放大 pass，降输出分辨率
+      outMul = Math.max(0.62, outMul - 0.12); ADAPT.cool = 3; ADAPT.settle = 0; layout();
+    } else {
+      ADAPT.settle = 0;
+    }
+  } else if (action > 0) {
+    const next = clampPx(scenePx * 1.05);
+    if (next > scenePx + 1e5) { scenePx = next; ADAPT.cool = 5; ADAPT.settle = 0; layout(); }
+    else if (outMul < 1) { outMul = Math.min(1, outMul + 0.08); ADAPT.cool = 5; ADAPT.settle = 0; layout(); }
+    else ADAPT.settle++;
+  } else {
+    ADAPT.settle++;
+  }
+  if (ADAPT.settle >= 5 && performance.now() - ADAPT.lastSave > 4000) {
+    ADAPT.lastSave = performance.now();
+    savePx(QNAME, scenePx);
+  }
+}
 
 // ---------------------------------------------------------------- per-frame data
 const proj = new Float32Array(16);
@@ -261,7 +409,7 @@ function sceneUniforms() {
 
 function pass(prog, target, uniforms) {
   gl.bindFramebuffer(gl.FRAMEBUFFER, target ? target.fbo : null);
-  const w = target ? target.w : W.w, h = target ? target.h : W.h;
+  const w = target ? target.w : W.outW, h = target ? target.h : W.outH;
   gl.viewport(0, 0, w, h);
   gl.useProgram(prog.program);
   setUniforms(gl, prog, uniforms);
@@ -356,7 +504,10 @@ function requestFullscreen() {
 const postcard = createPostcard({
   gl, W, cam, toast,
   todLabel: () => curLook.label,
-  setScale: (s) => { W.scale = s; resize(); },
+  // 出片要把画面拍清楚：临时把场景像素预算抬到输出画布大小（只多渲染一帧），截完恢复。
+  getPx: () => scenePx,
+  setPx: (p) => { scenePx = clampPx(p); layout(); },
+  lock: (v) => { adaptLock = !!v; },
 });
 
 // 触屏动作条：与键盘一一对应
@@ -371,6 +522,7 @@ const touch = TOUCH ? createTouch({
     guide: () => guide.toggle(),
     photo: () => setPhoto(!photoMode),
     postcard: () => postcard.open(),
+    quality: () => cycleQuality(1),
     home: () => cam.setView(0),
     help: () => helpEl?.classList.toggle('show'),
     fullscreen: requestFullscreen,
@@ -497,19 +649,29 @@ document.getElementById('rb-read')?.addEventListener('click', () => {
   if (!ROUTE.paused) { ROUTE.paused = true; updateRouteBar(); }
 });
 
-// 手动 / 自动切换画质档（触屏默认 low；桌面 ?q= 或自动降档可切）
-function setQuality(name) {
+// 手动 / 自动切换画质档（触屏默认 mid；?q= 或触屏菜单「画质」可切）
+function setQuality(name, persist = true) {
   if (!TIERS[name] || name === QNAME) return;
   QNAME = name;
   Q = TIERS[name];
-  ADAPT.min = Q.min; ADAPT.max = Q.max;
-  ADAPT.hi = Q.adaptMs; ADAPT.lo = Q.adaptMs * 0.55;
-  SHADOW.on = !!Q.shadow && !!SHADOW.rt && !OFF.has('shadow');
-  W.scale = Math.min(Math.max(W.scale, Q.min), Q.max);
+  SHADOW.on = !!Q.shadow && !TOUCH && !!SHADOW.rt && !OFF.has('shadow');
+  // 该档位上次在这台设备上自动找到的像素预算（没有就用档位默认值）
+  const st = params.has('px') ? 0 : loadPx(name);
+  scenePx = clampPx(st || Q.px0);
+  outMul = 1;
+  ADAPT.cool = 4; ADAPT.settle = 0;
   document.documentElement.dataset.q = name;
-  resize();
-  console.log('[main] quality -> ' + name + ' (scale ' + W.scale.toFixed(2) + ', shadow ' + SHADOW.on + ')');
-  if (started) toast('画质已切到「' + TIER_CN[name] + '」', 2200);
+  if (persist) { try { localStorage.setItem(Q_KEY, name); } catch { /* 隐私模式忽略 */ } }
+  layout();
+  console.log('[main] quality -> ' + name + ' (scene ' + (scenePx / 1e6).toFixed(2) + ' MP / out ' +
+    W.outW + 'x' + W.outH + ', shadow ' + SHADOW.on + ')');
+  if (started) toast('画质 · ' + TIER_CN[name], 2200);
+}
+// 三档循环：流畅 → 均衡 → 精细（触屏菜单「画质」/ 键盘 V / __cielo.cycleQuality()）
+function cycleQuality(dir = 1) {
+  const i = TIER_ORDER.indexOf(QNAME);
+  setQuality(TIER_ORDER[(i + dir + TIER_ORDER.length) % TIER_ORDER.length]);
+  return QNAME;
 }
 
 // pointer lock look
@@ -562,6 +724,9 @@ window.addEventListener('keydown', (e) => {
     cam.setView(cam.viewIndex + 1);
   } else if (e.code === 'KeyP') {
     setPhoto(!photoMode);
+  } else if (e.code === 'KeyV') {
+    e.preventDefault();
+    cycleQuality(1);
   } else if (e.code === 'KeyH') {
     helpEl?.classList.toggle('show');
   } else if (e.code === 'KeyR') {
@@ -602,7 +767,11 @@ function showDiag(extra) {
   const rows = [
     'CIELO 诊断 · 点一下关闭',
     '构建   ' + BUILD,
-    '协议   ' + location.protocol + '  触屏 ' + (TOUCH ? 'on' : 'off') + '  画质 ' + QNAME + '  倍率 ' + W.scale.toFixed(2),
+    '协议   ' + location.protocol + '  触屏 ' + (TOUCH ? 'on' : 'off') + '  画质 ' + QNAME + '（' + TIER_CN[QNAME] + '）',
+    '画质   场景 ' + (scenePx / 1e6).toFixed(2) + ' MP（' + W.srcW + 'x' + W.srcH + '）→ 输出 ' +
+      (W.outW * W.outH / 1e6).toFixed(2) + ' MP（' + W.outW + 'x' + W.outH + '，dpr ' + DPR.toFixed(2) +
+      ' → 输出倍率 ' + W.outScale.toFixed(2) + '）· GPU 计时 ' + (GPU_TIMER ? '可用' : '不可用') +
+      (gpuMs > 0 ? ' · gpu ' + gpuMs.toFixed(1) + ' ms' : ''),
     '内容   静态 ' + world.tris.toLocaleString() + ' tri · 动态 ' + ctx.dyn.length + ' actor · 点光 ' + ctx.points.length +
       ' · 观景 ' + VIEWS.length + ' · 抄本 ' + guide.total + ' 页',
     '渲染   绘制 ' + perf.drawCalls + ' 次 · cpu ' + perf.cpuMs.toFixed(1) + ' ms · 已渲染 ' + perf.frames + ' 帧',
@@ -617,7 +786,7 @@ function showDiag(extra) {
   d.addEventListener('click', () => d.remove());
   document.body.appendChild(d);
 }
-const perf = { frames: 0, cpuMs: 0, drawCalls: 0, tris: world.tris, buildMs };
+const perf = { frames: 0, cpuMs: 0, gpuMs: 0, drawCalls: 0, tris: world.tris, buildMs, scenePx };
 window.__cielo = {
   cam, ctx, world, perf,
   setView: (i) => cam.setView(i, false),
@@ -637,13 +806,18 @@ window.__cielo = {
   isTouch: TOUCH,
   quality: () => QNAME,
   tiers: TIERS,
+  // 第十三轮：画质与分辨率（验收脚本/控制台用）
+  cycleQuality: (d = 1) => cycleQuality(d),
+  res: () => ({ scenePx, sceneEff: W.srcW * W.srcH, src: [W.srcW, W.srcH], out: [W.outW, W.outH], outPx: W.outW * W.outH, dpr: DPR, outScale: W.outScale, outMul, gpuMs, gpuTimer: !!GPU_TIMER, measure: ADAPT.measure, target: GPU_TARGET || Q.gpuMs }),
+  setPx: (p) => { scenePx = clampPx(Number(p) || Q.px0); layout(); return scenePx; },
+  getPx: () => scenePx,
   // 主题航线：给验收脚本/控制台用
   routes: ROUTES,
   startRoute: (id) => startRoute(id),
   exitRoute: (why) => exitRoute(why),
   routeState: () => ({ id: ROUTE.r ? ROUTE.r.id : null, index: ROUTE.i, paused: ROUTE.paused, total: ROUTE.r ? ROUTE.r.stops.length : 0, t: +ROUTE.t.toFixed(2) }),
   setQuality: (n) => setQuality(n),
-  stats: () => ({ quality: QNAME, scale: W.scale, shadow: SHADOW.on, touch: TOUCH, pointerLocked: locked, started }),
+  stats: () => ({ quality: QNAME, scale: W.scale, scenePx, sceneEff: W.srcW * W.srcH, srcW: W.srcW, srcH: W.srcH, outW: W.outW, outH: W.outH, outPx: W.outW * W.outH, dpr: DPR, outScale: W.outScale, outMul, gpuMs, shadow: SHADOW.on, touch: TOUCH, pointerLocked: locked, started }),
   ready: false,
 };
 
@@ -667,7 +841,7 @@ function drawFrame(now) {
   // 冻结帧（截图 / ?freeze=）时 dt 恒为 0，抵达检测用一个固定步长，卡片才会出现
   if (started) guide.update(cam.pos, FREEZE >= 0 ? 0.24 : dt);
   ambience.camPos = cam.pos;
-  const aspect = W.w / W.h;
+  const aspect = W.srcW / W.srcH;
   const p = m4.perspective((cam.fov * Math.PI) / 180, aspect, 0.4, 4200);
   proj.set(p);
   view.set(cam.viewMatrix());
@@ -681,6 +855,10 @@ function drawFrame(now) {
   const instActorsList = ctx.dyn.filter((d) => d.kind === 'inst' && dynOK(d));
 
   let draws = 0;
+
+  // GPU 计时（EXT_disjoint_timer_query_webgl2）：一帧只发一个 query，下一帧取结果。
+  // 自适应调节器优先用它 —— 帧时间被 vsync 量化成 16.7/33.3，GPU ms 才是真正的余量。
+  gpuBegin();
 
   // ---- 0. sun shadow map (day / dusk only; at night it is switched off) ---
   if (SHADOW.on && !OFF.has('shadow') && curLook.shadowOn > 0.5) {
@@ -711,7 +889,7 @@ function drawFrame(now) {
   }
   // ---- 1. scene target ---------------------------------------------------
   gl.bindFramebuffer(gl.FRAMEBUFFER, rtScene.fbo);
-  gl.viewport(0, 0, W.w, W.h);
+  gl.viewport(0, 0, W.srcW, W.srcH);
   gl.clearColor(0.02, 0.04, 0.09, 1);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   gl.disable(gl.CULL_FACE);
@@ -728,27 +906,6 @@ function drawFrame(now) {
   } else {
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, null);
-  }
-
-  // sky dome (no depth write)
-  if (!OFF.has('sky')) {
-    const f = cam.forward;
-    const right = norm([-f[2], 0, f[0]]);
-    // up = right x forward  (NOT forward x right: that flips the whole sky upside down)
-    const up = [right[1] * f[2] - right[2] * f[1], right[2] * f[0] - right[0] * f[2], right[0] * f[1] - right[1] * f[0]];
-    gl.depthMask(false);
-    pass(P.sky, rtScene, {
-      uCamPos: cam.pos, uRight: right, uUp: up, uFwd: f,
-      uTanFov: Math.tan((cam.fov * Math.PI) / 360), uAspect: aspect,
-      uZenith: curLook.skyZenith, uSkyMid: curLook.skyMid, uHorizon: curLook.skyHorizon, uHaze: curLook.haze,
-      uSunDir: curLook.sunVisDir, uSunColor: curLook.sunColor,
-      uMoonDir: curLook.moonDir, uMoonColor: curLook.moonColor,
-      uCloudLit: curLook.cloudLit, uCloudShade: curLook.cloudShade, uCloudDeep: curLook.cloudDeep,
-      uTime: time, uCloudCov: curLook.cloudCov,
-      uNight: curLook.night, uStarInt: curLook.starInt, uMoonInt: curLook.moonInt, uMoonSize: curLook.moonSize,
-    });
-    drawMesh(gl, quadMesh); draws++;
-    gl.depthMask(true);
   }
 
   // ---- 2. opaque world ---------------------------------------------------
@@ -801,6 +958,31 @@ function drawFrame(now) {
       act.upload(n);
       if (n > 0) { drawMesh(gl, a.mesh); draws++; glCheck('inst:' + (a.name || '?')); }
     }
+  }
+
+  // ---- 3c. sky（实体几何之后画，只着色露天的像素）-------------------------
+  // 第十三轮优化：天空 shader 里有 ~380 次噪声采样/像素（两层积云 + 卷云 + 星空），
+  // 旧顺序是"先全屏画天空、再让建筑盖上去"——室内机位等于把整屏最贵的 shader 白算一遍。
+  // 现在天空的顶点 z 固定在 1.0（= 清屏深度），用 LEQUAL 只画深度仍为 1.0 的像素；
+  // 视觉逐像素一致，室外机位省掉建筑遮挡的那部分，室内机位省掉 90%+。
+  if (!OFF.has('sky')) {
+    const f = cam.forward;
+    const right = norm([-f[2], 0, f[0]]);
+    // up = right x forward  (NOT forward x right: that flips the whole sky upside down)
+    const up = [right[1] * f[2] - right[2] * f[1], right[2] * f[0] - right[0] * f[2], right[0] * f[1] - right[1] * f[0]];
+    gl.depthMask(false);
+    pass(P.sky, rtScene, {
+      uCamPos: cam.pos, uRight: right, uUp: up, uFwd: f,
+      uTanFov: Math.tan((cam.fov * Math.PI) / 360), uAspect: aspect,
+      uZenith: curLook.skyZenith, uSkyMid: curLook.skyMid, uHorizon: curLook.skyHorizon, uHaze: curLook.haze,
+      uSunDir: curLook.sunVisDir, uSunColor: curLook.sunColor,
+      uMoonDir: curLook.moonDir, uMoonColor: curLook.moonColor,
+      uCloudLit: curLook.cloudLit, uCloudShade: curLook.cloudShade, uCloudDeep: curLook.cloudDeep,
+      uTime: time, uCloudCov: curLook.cloudCov,
+      uNight: curLook.night, uStarInt: curLook.starInt, uMoonInt: curLook.moonInt, uMoonSize: curLook.moonSize,
+    });
+    drawMesh(gl, quadMesh); draws++;
+    gl.depthMask(true);
   }
 
   // ---- 4. billboards (transparent, depth-tested, no depth write) ----------
@@ -903,60 +1085,72 @@ function drawFrame(now) {
     drawMesh(gl, quadMesh); draws++;
   }
 
-  // ---- 7. composite ------------------------------------------------------
-  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-  gl.viewport(0, 0, W.w, W.h);
+  // ---- 7a. composite（场景内部分辨率，HDR → LDR）--------------------------
   gl.disable(gl.DEPTH_TEST);
-  pass(P.comp, null, {
+  gl.disable(gl.BLEND);
+  pass(P.comp, rtLdr, {
     uScene: 0, uBloom1: 1, uBloom2: 2,
-    uTime: time, uRes: [W.w, W.h],
+    uTime: time, uRes: [W.srcW, W.srcH],
     uExposure: curLook.exposure, uBloom: curLook.bloomInt,
     uSaturation: curLook.saturation, uContrast: curLook.contrast,
-    uVignette: curLook.vignette, uGrain: 0.018, uFxaa: Q.fxaa && W.scale >= 0.6 ? 1.0 : 0.0,
+    // 晕影/颗粒移到输出分辨率的放大 pass：放大后不会被拉成色块/噪团
+    uVignette: 0, uGrain: 0, uFxaa: Q.fxaa ? 1.0 : 0.0,
   });
   gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, rtScene.tex);
   gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, rtBloomA.tex);
   gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, rtScene2.tex);
   drawMesh(gl, quadMesh); draws++;
 
+  // ---- 7b. 放大 + 锐化（输出分辨率，1:1 贴屏）-----------------------------
+  // 内部像素低于输出像素时，双线性放大是"糊"的主要来源；4 tap unsharp 把边缘的
+  // 对比度补回来，再叠输出分辨率的晕影/颗粒/抖动 —— 这是"低预算也显精细"的关键。
+  pass(P.up, null, {
+    uTex: 0, uSrc: [1 / W.srcW, 1 / W.srcH], uRes: [W.outW, W.outH],
+    uSharp: Q.sharpen, uVignette: curLook.vignette, uGrain: 0.014, uNight: curLook.night,
+  });
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, rtLdr.tex);
+  drawMesh(gl, quadMesh); draws++;
+  gpuEnd();
+
   // ---- 8. 明信片工坊：需要出片时先抬一帧分辨率，下一帧 readPixels（截完自动恢复）
   if (postcard) postcard.onFrame();
 
   const c1 = performance.now();
   cpuMs = cpuMs * 0.9 + (c1 - c0) * 0.1;
-  // adaptive render scale: keep the scene interactive on weaker GPUs
-  if (FREEZE < 0 && started && !OFF.has('adapt')) {
-    ADAPT.t += dtRaw * 1000; ADAPT.n++;
-    if (ADAPT.n >= 60) {
-      const avg = ADAPT.t / ADAPT.n;
-      ADAPT.t = 0; ADAPT.n = 0;
-      if (ADAPT.cool > 0) ADAPT.cool--;
-      else if (avg > ADAPT.hi && W.scale > ADAPT.min) { W.scale = Math.max(ADAPT.min, W.scale - 0.12); resize(); ADAPT.cool = 2; }
-      else if (avg < ADAPT.lo && W.scale < ADAPT.max) { W.scale = Math.min(ADAPT.max, W.scale + 0.08); resize(); ADAPT.cool = 2; }
-    }
-  }
-  // 开局画质探测：先跳过 40 帧（着色器编译 + 构建期内存回收带来的一次性抖动），
-  // 再取 120 帧平均。第十二轮教训：分批上传后的头几十帧曾被 GC 拖到 40 ms+，桌面
-  // 被误判成"设备慢"直接降档 —— 这不是设备慢，是启动期的一次性开销。
+  // 第十三轮：自适应分辨率（GPU 计时器优先）。窗口 30 帧，超预算就降场景像素预算，
+  // 一直比较闲就慢慢加回来 —— 旧版「只降不升」会让能跑的手机永远停在 0.6 倍率。
+  adaptStep(dtRaw);
+  // 开局 160 帧只做记录、不调档：着色器编译 + 构建期 GC 抖动会骗过调节器（第十二轮的教训）
   if (FREEZE < 0 && started && bootN >= 0) {
     bootN++;
     if (bootN > 40) { bootSum += dtRaw * 1000; bootM++; }
     if (bootN === 160) {
       const avg = bootSum / Math.max(1, bootM);
       bootN = -1;
-      console.log('[main] boot frames 41-160 avg ' + avg.toFixed(1) + ' ms · quality ' + QNAME);
-      // 只降不升：触屏默认就是 low，自动升档会改变用户看到的画质/发热；真机想高画质用 ?q= 手动指定。
-      if (avg > 40 && QNAME !== 'low') setQuality('low');
+      console.log('[main] boot frames 41-160 avg ' + avg.toFixed(1) + ' ms · quality ' + QNAME +
+        ' · scene ' + (scenePx / 1e6).toFixed(2) + ' MP / out ' + W.outW + 'x' + W.outH +
+        ' · gpu timer ' + (GPU_TIMER ? 'on' : 'off'));
+      // 兜底：开局 2.7 s 平均帧时间明显不够（<30 fps）时降一档；只在真正跑不动时触发，
+      // 且不写进 localStorage（用户显式选择的档位下次仍然生效，降档只影响本次会话）。
+      if (avg > 50 && QNAME !== 'low') setQuality('low', false);
+      else if (avg > 34 && QNAME === 'high') setQuality('mid', false);
     }
   }
   perf.cpuMs = cpuMs;
   perf.drawCalls = draws;
   perf.frames++;
+  perf.gpuMs = gpuMs;
+  perf.scenePx = scenePx;
   if (FREEZE < 0 && started) {
     frames++;
     fpsAcc += dtRaw;
     if (fpsAcc > 0.5) {
-      if (fpsEl) fpsEl.textContent = Math.round(frames / fpsAcc) + ' FPS\n' + Math.round(cpuMs * 10) / 10 + ' ms cpu\n' + (world.tris / 1000).toFixed(0) + 'k tris';
+      if (fpsEl) {
+        const gp = GPU_TIMER ? Math.round(gpuMs * 10) / 10 : -1;
+        fpsEl.textContent = Math.round(frames / fpsAcc) + ' FPS\n' +
+          (gp >= 0 ? gp + ' ms gpu · ' : '') + Math.round(cpuMs * 10) / 10 + ' ms cpu\n' +
+          (scenePx / 1e6).toFixed(2) + ' MP 场景 / ' + (W.outW * W.outH / 1e6).toFixed(1) + ' MP 输出';
+      }
       frames = 0; fpsAcc = 0;
     }
   }

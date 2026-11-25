@@ -363,11 +363,12 @@
     <div class="keys desk-only">
       <b>WASD</b> 飞行 &nbsp;·&nbsp; <b>鼠标</b> 环视 &nbsp;·&nbsp; <b>Q / E</b> 升降 &nbsp;·&nbsp; <b>Shift</b> 加速<br>
       <b>空格</b> 自动巡游 &nbsp;·&nbsp; <b>1–9 / 0</b> 观景点 &nbsp;·&nbsp; <b>Z / X</b> 切换 &nbsp;·&nbsp; <b>P</b> 摄影<br>
-      <b>G</b> 城市导览抄本 &nbsp;·&nbsp; <b>N</b> 昼夜切换 &nbsp;·&nbsp; <b>F</b> 放烟花 &nbsp;·&nbsp; <b>C</b> 明信片
+      <b>G</b> 城市导览抄本 &nbsp;·&nbsp; <b>N</b> 昼夜切换 &nbsp;·&nbsp; <b>F</b> 放烟花 &nbsp;·&nbsp; <b>C</b> 明信片 &nbsp;·&nbsp; <b>V</b> 画质
     </div>
     <div class="keys touch-only">
       <b>左半屏</b> 按住拖动 = 摇杆飞行 &nbsp;·&nbsp; <b>右半屏</b> 拖动 = 转视角（<b>两手可同时操作</b>）<br>
-      <b>升 / 降</b> 在右侧 &nbsp;·&nbsp; 右下角 <b>☰ 菜单</b> 展开按钮：巡游 · 观景 · 导览 · 昼夜 · 烟花 · 摄影 · 明信片<br>
+      <b>升 / 降</b> 在右侧 &nbsp;·&nbsp; 右下角 <b>☰ 菜单</b> 展开按钮：巡游 · 观景 · 导览 · 昼夜 · 烟花 · 摄影 · 明信片 · 画质<br>
+      <b>画质</b> 按钮循环 流畅 / 均衡 / 精细（默认「均衡」，会按这台设备的实测帧率自动找最清晰的档）<br>
       横屏体验最好；浏览器菜单里「添加到主屏幕」可以离线打开
     </div>
     <div class="build">构建 __BUILD_STAMP__</div>
@@ -379,7 +380,7 @@
   <div class="chrome" id="fps"></div>
   <div class="chrome hint" id="hint">
     <span><kbd>W A S D</kbd>飞行</span><span><kbd>鼠标</kbd>环视</span><span><kbd>Q E</kbd>升降</span>
-    <span><kbd>空格</kbd>巡游</span><span><kbd>1-9</kbd>观景</span><span><kbd>Z X</kbd>切换</span><span><kbd>G</kbd>导览</span><span><kbd>N</kbd>昼夜</span><span><kbd>F</kbd>烟花</span><span><kbd>C</kbd>明信片</span><span><kbd>H</kbd>帮助</span>
+    <span><kbd>空格</kbd>巡游</span><span><kbd>1-9</kbd>观景</span><span><kbd>Z X</kbd>切换</span><span><kbd>G</kbd>导览</span><span><kbd>N</kbd>昼夜</span><span><kbd>F</kbd>烟花</span><span><kbd>C</kbd>明信片</span><span><kbd>V</kbd>画质</span><span><kbd>H</kbd>帮助</span>
   </div>
   <div class="chrome" id="tod">白昼</div>
   <div id="newbadge">抄本 · 0 条新记载</div>
@@ -390,7 +391,7 @@
     <div class="touch-only"><span>右半屏拖动</span><span class="v">转视角（可边飞边转）</span></div>
     <div class="touch-only"><span>右下 ☰ 菜单</span><span class="v">展开动作按钮</span></div>
     <div class="touch-only"><span>右缘 升 / 降</span><span class="v">上下高度</span></div>
-    <div class="touch-only"><span>底部按钮</span><span class="v">巡游 / 观景 / 导览 / 昼夜 / 烟花 / 摄影 / 明信片</span></div>
+    <div class="touch-only"><span>底部按钮</span><span class="v">巡游 / 观景 / 导览 / 昼夜 / 烟花 / 摄影 / 明信片 / 画质</span></div>
     <div class="desk-only"><span>W A S D</span><span class="v">飞行</span></div>
     <div class="desk-only"><span>鼠标</span><span class="v">环视（点击画面锁定）</span></div>
     <div class="desk-only"><span>Q / E</span><span class="v">下降 / 上升</span></div>
@@ -406,6 +407,8 @@
     <div class="desk-only"><span>H</span><span class="v">收起此面板</span></div>
     <div class="desk-only"><span>C</span><span class="v">明信片工坊（保存 / 分享当前画面）</span></div>
     <div class="touch-only"><span>明信片</span><span class="v">把此刻做成一张可保存的明信片</span></div>
+    <div class="desk-only"><span>V</span><span class="v">画质：流畅 / 均衡 / 精细（会记住你的选择）</span></div>
+    <div class="touch-only"><span>画质</span><span class="v">流畅 / 均衡 / 精细 —— 画面更精细就选「精细」</span></div>
     <div class="build">构建 __BUILD_STAMP__</div>
   </div>
 </div>
@@ -475,6 +478,7 @@
     <button data-act="fireworks">烟花</button>
     <button data-act="photo">摄影</button>
     <button data-act="postcard">明信片</button>
+    <button data-act="quality">画质</button>
     <button data-act="home">露台</button>
     <button data-act="help">帮助</button>
     <button data-act="fullscreen">全屏</button>

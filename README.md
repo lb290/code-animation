@@ -41,7 +41,7 @@ CIELO 支持触屏：左半屏按住拖动 = 摇杆飞行，右半屏拖动 = �
 | **装到平板主屏幕（推荐，可离线）** | 平板 Chrome 打开 <https://lb290.github.io/code-animation/04-output/CIELO.html> → 菜单「添加到主屏幕 / 安装应用」；装好后断网也能打开（service worker 缓存单文件） | 日常玩、出门看 |
 | **单文件带走** | 把 `04-output/CIELO.html`（约 0.96 MB）拷到平板或手机，用浏览器打开本地文件 | 完全没有网络时 |
 
-画质档可以用 URL 参数强制：`?q=low|mid|high`（默认：触屏 low、桌面 high；开局 150 帧后还会按实测帧时间自动调一档）。`?touch=0` 可在平板上退回桌面式键盘操作。
+**画质（第十三轮重做）**：触屏动作条里的 **「画质」** 按钮（或桌面 `V` 键）循环 **流畅 / 均衡 / 精细**，默认「精细」，选择会记住（`localStorage`）；也可用 URL 强制 `?q=low|mid|high`。三档的差别是「场景像素预算 + 输出分辨率 + 点光数」，**画面按设备像素输出**（dpr≤2 时与屏幕 1:1），再由一个输出分辨率的锐化 pass 收尾；渲染中间分辨率由**GPU 计时器**每 30 帧自动调节（最优点按设备记住），跑不动的机型还会自动降输出分辨率兜底。HUD 右上角显示 `FPS / gpu ms · cpu ms / 场景 MP · 输出 MP`；`?diag` 里有 `scenePx/sceneEff/outW/outH`。`?touch=0` 可在平板上退回桌面式键盘操作。
 
 > 平板建议横屏；竖屏（窄于 760 px）会显示「把平板横过来」的轻提示，可点掉。iOS Safari 未专门适配。
 
@@ -87,7 +87,9 @@ CIELO 支持触屏：左半屏按住拖动 = 摇杆飞行，右半屏拖动 = �
     src/glsl/whale.fs.glsl  巨鲸专用着色器（wrap light + 云层反弹光，腹部不会塌成剪影）
     tools/            serve/shot/look/final-stills（CDP 截图，支持 VIEW_PLAN 逐张 query）· whale/backcity/
                       palace/palace-hall/terrace-set/palace-base/palace-salon/glass-hall/glass-dome/palace-rooms/
-                      night / rail-clear / cathedral / station 等 *-check.mjs（node 端几何/光照/烟花体检）
+                      night / rail-clear / cathedral / station 等 *-check.mjs（node 端几何/光照/烟花体检）·
+                      mobile-check（触屏/画质验收）· mem-check（受限堆手机模拟）· bench（帧时间基准）·
+                      quality-check（截图图像指标：锐度/像素化/锯齿）· perf-split（渲染成本曲线）
 
 02-refs/              下载学习的开源仓库（git clone --depth 1）
   lumina/                         Luminati：three.js 2.5D 像素引擎 + 云上之城 Aurelis（天空之城的直接参考）
@@ -109,6 +111,7 @@ CIELO 支持触屏：左半屏按住拖动 = 摇杆飞行，右半屏拖动 = �
   skycity-production.md     天空之城 · 灯祭的制作笔记（管线/几何/鱼灯/建筑/街市/音频/性能）
   building-spec.md          建筑施工规格（1 间 = 2 m 模数、构件表、色板 Y 值、面数预算、验收判据）
   perf-skycity-2026-11-20.md  主循环性能优化的测量报告与调参表
+  cielo-round13-quality.md    CIELO 画质系统 v2：手机端根因实测 / 像素预算 / 自适应 / 指标前后对比
 
 04-output/            作品
   AETHER_1080p.mp4    母版：1920x1080 / 30fps / 24.000s / H.264 41.5Mbps / 119MB
@@ -451,6 +454,20 @@ node tools/mem-check.mjs              # 内存/完整性验收（受限堆手机
 ~~~
 
 观景点 80 个（新增 78「云上茶席」/ 79「茶席长桌」/ 80「镜池仰观」，`Z X` 翻到最后一组）。
+
+**第十三轮（2026-11-25 晚）：画质系统 v2 —— 手机端「不糊了」** —— 用户反馈「手机上不卡了，但建筑显示非常粗糙，既要流畅又要精细分辨率高」。
+根因是旧 `resize()` 用 `canvas.width = innerWidth * scale`、**完全没算 devicePixelRatio**：手机（dpr 2–3）上场景只渲染
+768×349（0.27 MP）再被浏览器放大 **3.3 倍**，低画质档还关掉了 FXAA。本轮把渲染管线重做成四件事：
+① **输出画布按设备像素出**（`dpr≤2` 时与屏幕 1:1），场景内部改用**像素预算**（三档 0.55–3.2 MP）；
+② **两段后处理**：composite（FXAA/bloom/tonemap）→ 新的**输出分辨率放大 + 4 tap 锐化** pass（放大不再交给浏览器）；
+③ **自适应分辨率 v2**：`EXT_disjoint_timer_query_webgl2` 量真实 GPU ms，每 30 帧调一次（降快升慢），最优点按档位写 `localStorage`，另用 `outMul` 给极弱机型兜底；
+④ **天空改为实体之后画**（顶点 z=1.0 + LEQUAL 只着色露天像素），室内机位省 90%+ 最贵的天空 shader，且逐像素一致。
+效果（`tools/quality-check.mjs`，手机 4 视图均值）：2×2 同色块 **11.01% → 3.33%**、相邻等值像素 **28.39% → 15.95%**、
+LapVar 锐度 **115.7 → 225.2**、边缘对比 p95 112.2 → 139.3；桌面 1:1 下 LapVar 1283.8 → 2061.5（几何/配色零变化）。
+三档在手机视口：流畅 2.2 MP 输出/0.95 MP 场景、均衡 2.7 MP/1.35 MP、精细 **2.56×1.16 MP = 设备像素**/1.90 MP。
+成本曲线 `frame_ms ≈ 4.09 + 2.83·MP`（填充率主导）。试过背面剔除但 winding 不一致（墙上有洞）已放弃。
+验收：`checkall` 30/30、`mem-check` 15 PASS、`mobile-check` 全 PASS（新增画质断言）。技术记录见
+[03-notes/cielo-round13-quality.md](03-notes/cielo-round13-quality.md)，历史见 [HANDOFF.md](HANDOFF.md)（986.5 KB 单文件）。
 
 **第十二轮**：手机端崩溃的根因是构建期 JS 堆峰值 1.2 GB（安卓 Chrome renderer 上限几百 MB）——几何改为分块 TypedArray 累积 + 7 批流式上传后降到 29 MB；同时加了三条**主题航线**（抄本头部「主题航线」→ 启程，或 `?route=architecture|wonder|secret`），以及 `?diag` 里的世界批数/JS 堆/失败列表。详见 [HANDOFF.md](HANDOFF.md)。
 ## 方法论（来自 03-notes/techniques.md）
