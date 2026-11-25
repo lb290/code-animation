@@ -3,8 +3,8 @@
 // import it directly (tools/routes-check.mjs does exactly that).
 //
 // Each route is an ordered list of bus stops:
-//   view  — index into L.views (src/layout.js), 0-based, 0..79
-//   lore  — 'id' of an entry in LORE (src/lore.js), 31 pages
+//   view  — index into L.views (src/layout.js), 0-based, 0..83
+//   lore  — 'id' of an entry in LORE (src/lore.js), 32 pages
 //   stay  — seconds the camera holds at the stop (10..18)
 //   title — stop name shown in the "第 n / N 站 · 下一站 …" HUD
 //   note  — one-line hook under the stop name (≤ 18 chars)
@@ -35,6 +35,9 @@ export const ROUTES = [
       { view: 24, lore: 'throne',      stay: 13, title: '王宫圆厅',         note: '圆厅正中一把金王座' },
       { view: 27, lore: 'glasshall',   stay: 14, title: '玻璃宫蓝色大厅',   note: '蓝玻璃把大厅泡进海水里' },
       { view: 74, lore: 'observatory', stay: 16, title: '玻璃宫星象台',     note: '抬头就是一整个黄铜星空' },
+      // round 14: the new water-gate tower closes the architectural line — from the
+      // eleven stacked galleries around the cloud well (view 81 is the hall looking up).
+      { view: 81, lore: 'cloudwell',   stay: 15, title: '云井塔中庭',         note: '十一层回廊围着一口云井' },
     ],
   },
   {

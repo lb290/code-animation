@@ -20,6 +20,8 @@ import { buildStation } from './station.js';
 import { buildPalaceChambers } from './palace-chambers.js';
 import { buildOpera } from './opera.js';
 import { buildTeaPavilion } from './tea-pavilion.js';
+import { buildCloudwell } from './cloudwell.js';
+import { buildCloudwellHall } from './cloudwell-hall.js';
 import { disc, MT } from './lib3d.js';
 import { C, LOOK } from './palette.js';
 import { L } from './layout.js';
@@ -100,6 +102,11 @@ export function buildWorld(gl) {
   // round 10: the floating tea pavilion high above the south-west rim. Appended LAST so
   // its local rng draws never shift any earlier module's sequence.
   tag('teaPavilion', () => buildTeaPavilion(b, ctx, rng));
+  // round 14: 云井塔 (THE CLOUDWELL) — the enterable water-gate tower across the canal at the
+  // boulevard's south terminus. Appended LAST so its local rng draws never shift any earlier
+  // module's sequence (both modules ignore the shared rng and own a mulberry32 seed).
+  tag('cloudwell', () => buildCloudwell(b, ctx, rng));
+  tag('cloudwellHall', () => buildCloudwellHall(b, ctx, rng));
 
   flush();
   b.release();   // 上传完就放掉 JS 侧的块（手机上省 100+ MB 存活内存）

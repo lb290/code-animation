@@ -57,6 +57,11 @@ const RES_RECTS = () => [
   // round 8: the opera house's real envelope is x 67..131 / z -94..-22 (opera-check);
   // the reserve is generous so nothing can ever be re-rolled into its steps or portico.
   [99, -58, 72, 82, 4],
+  // round 14: 云井塔's water-gate platform straddles the canal at the boulevard's south end.
+  // Platform envelope x -21..21 / z -252..-212 (cloudwell-check); reserve with the same margin
+  // the opera got. The canal corridor already rejects every block on that strip, so this rect
+  // is documentation + a guard against future re-plans — it re-rolls nothing today.
+  [0, L.cloudwell.z, 42, 40, 4],
 ];
 
 // round 7: the rail distance now comes from rail-path.js, which samples the REAL

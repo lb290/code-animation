@@ -48,18 +48,22 @@ const PORT = Number(args.port || 8134);
 const ROOT = path.resolve(args.root || repoRoot);         // 静态服务器根
 const PAGE = args.page ? (String(args.page).startsWith('/') ? String(args.page) : '/' + args.page) : '/04-output/CIELO.html';
 const PAGE_URL = 'http://127.0.0.1:' + PORT + PAGE;
-const MEM_LIMIT_MB = Number(args.mem || 300);             // JS 堆占用门槛
+const MEM_LIMIT_MB = Number(args.mem || 300);             // 受限堆手机模拟的 JS 堆门槛
+// 桌面门槛同样是 300 MB。第十四轮踩过一次坑：mobile-check 与 mem-check **同时**跑时，
+// 两个 headless Chrome 抢同一个 CDP 端口，桌面堆被读成 324–339 MB（假的）；串行重跑
+// 同一份构建是 25–44 MB。**验收脚本一律串行**。
+const DESKTOP_MEM_LIMIT_MB = Number(args.desktopmem || 300);
 const WAIT_BUILD_MS = Number(args.wait || 18000);         // 等构建完成
 const FRAME_WINDOW_MS = Number(args['frame-window'] || 5000); // 帧循环观测窗口
 const MIN_FRAME_DELTA = Number(args['min-frames'] || 30); // 5 秒至少涨多少帧
 const SHOT_TIMEOUT_MS = Number(args['shot-timeout'] || 180000); // 单次 shot 子进程上限
 const ONLY = args.only || 'all';
 
-// —— 内容门槛（第十一轮既有规模：204.8 万三角面 / 80 个观景点 / 31 页抄本）
-const MIN_TRIS = 2048000;
+// —— 内容门槛（第十四轮规模：约 215 万三角面 / 84 个观景点 / 32 页抄本）
+const MIN_TRIS = 2150000;
 const TRIS_TOL = 0.005;                                   // 允许 ±0.5%
-const EXPECT_VIEWS = 80;
-const EXPECT_LORE = 31;
+const EXPECT_VIEWS = 84;
+const EXPECT_LORE = 32;
 const MIN_TRIS_EFFECTIVE = Math.round(MIN_TRIS * (1 - TRIS_TOL)); // 2,037,760
 
 const startedAt = Date.now();
@@ -316,12 +320,13 @@ async function runScenario(cfg) {
           + '，要求 ≤ ' + (cfg.heapMB + 220) + ' MB（--max-old-space-size=' + cfg.heapMB + '）');
   }
 
-  // 6) 构建后 JS 堆 < 门槛
-  add('JS 堆 < ' + MEM_LIMIT_MB + ' MB',
-    Number.isFinite(memMB) && memMB < MEM_LIMIT_MB,
+  // 6) 构建后 JS 堆 < 门槛（手机看 300 MB；桌面只看有没有第十二轮那种 1276 MB 级泄漏）
+  const heapLimit = cfg.mobile ? MEM_LIMIT_MB : DESKTOP_MEM_LIMIT_MB;
+  add('JS 堆 < ' + heapLimit + ' MB',
+    Number.isFinite(memMB) && memMB < heapLimit,
     noReading ? shotNote
       : 'usedJSHeapSize ' + (memSeq.length ? memSeq.join(' / ') + ' MB（取最小）' : '取不到（performance.memory 不可用）')
-        + ' / 堆上限 ' + (memLimitMB == null ? '?' : memLimitMB + ' MB') + '，要求 < ' + MEM_LIMIT_MB + ' MB');
+        + ' / 堆上限 ' + (memLimitMB == null ? '?' : memLimitMB + ' MB') + '，要求 < ' + heapLimit + ' MB');
 
   // 7) 帧循环在跑
   const f0 = read0 && Number.isFinite(read0.frames) ? read0.frames : null;
@@ -378,7 +383,7 @@ console.log('=== CIELO 第十二轮崩溃回归验收 · 受限堆模拟安卓�
 const pageDesc = (ROOT === repoRoot && PAGE === '/04-output/CIELO.html')
   ? '仓库里当前的 04-output/CIELO.html' : ROOT + PAGE;
 console.log('构建：' + pageDesc + '（构建戳由页面自己报）');
-console.log('门槛：静态 tris ≥ ' + MIN_TRIS_EFFECTIVE.toLocaleString('en-US') + '（204.8 万 −0.5%）· 观景 ' + EXPECT_VIEWS
+console.log('门槛：静态 tris ≥ ' + MIN_TRIS_EFFECTIVE.toLocaleString('en-US') + '（215 万 −0.5%）· 观景 ' + EXPECT_VIEWS
   + ' · 抄本 ' + EXPECT_LORE + ' 页 · JS 堆 < ' + MEM_LIMIT_MB + ' MB · 5 秒 +' + MIN_FRAME_DELTA + ' 帧');
 console.log('服务器根：' + ROOT);
 

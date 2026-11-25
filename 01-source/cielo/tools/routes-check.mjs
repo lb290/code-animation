@@ -8,7 +8,7 @@ import { LORE } from '../src/lore.js';
 import { ROUTES, routeById } from '../src/routes.js';
 
 const VIEWS = L.views;
-const VIEW_MAX = 79;                     // 80 viewpoints, 0-based
+const VIEW_MAX = 83;                     // 84 viewpoints, 0-based (80-83 = round 14 云井塔)
 const LORE_BY_ID = new Map(LORE.map((e) => [e.id, e]));
 const REQUIRED_LORE = ['cathedral', 'station', 'opera', 'tea', 'whale', 'observatory'];
 const EXPECTED_IDS = ['architecture', 'wonder', 'secret'];
@@ -25,8 +25,8 @@ const chars = (s) => [...String(s)].length;
 
 // ------------------------------------------------------------------ shapes
 console.log('== scene data ==');
-ok('layout.js exposes 80 viewpoints', VIEWS.length === 80, 'L.views=' + VIEWS.length);
-ok('lore.js exposes 31 almanac pages', LORE.length === 31, 'LORE=' + LORE.length);
+ok('layout.js exposes 84 viewpoints', VIEWS.length === 84, 'L.views=' + VIEWS.length);
+ok('lore.js exposes 32 almanac pages', LORE.length === 32, 'LORE=' + LORE.length);
 
 console.log('\n== route table ==');
 ok('ROUTES is an array of three routes', Array.isArray(ROUTES) && ROUTES.length === 3, 'n=' + (ROUTES && ROUTES.length));
@@ -82,7 +82,7 @@ for (const r of ROUTES) {
 
 // ------------------------------------------------------------- coverage
 console.log('\n== coverage ==');
-ok('three routes total 19 stops', totalStops === 19, 'n=' + totalStops);
+ok('three routes total 20 stops', totalStops === 20, 'n=' + totalStops);
 ok('at least 12 distinct almanac pages across the three routes', usedLore.size >= 12, 'n=' + usedLore.size);
 const missing = REQUIRED_LORE.filter((id) => !usedLore.has(id));
 ok('key pages visited (' + REQUIRED_LORE.join(', ') + ')', missing.length === 0,

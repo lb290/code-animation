@@ -41,6 +41,14 @@ export const L = {
   // so rot = +PI/2 makes the main facade look -X, across the boulevard.
   opera: { x: 104, z: -58, rot: Math.PI / 2 },
 
+  // round 14: 云井塔 / THE CLOUDWELL — a glass-and-brass water-gate tower standing astride the
+  // grand canal where it crosses the boulevard's axis (the old x=0 bridge is absorbed by its
+  // platform). The boulevard runs dead into its portal: the tower is the city's southern vista
+  // terminator, and the canal flows through the arch under it. Footprint 42 x 40 m (platform),
+  // tower shaft r=18. It sits in the canal reserve (no city block is touched: the canal corridor
+  // already keeps buildings out), so adding its reserve rect cannot re-roll the city blocks.
+  cloudwell: { x: 0, z: -232, rot: 0 },
+
   // elevated railway: viaduct deck height, and the loop the train runs on
   railY: 27.5,
   // The train loop stays in front of the terrace (z <= 66) so the viaduct never
@@ -205,5 +213,14 @@ export const L = {
     { name: '云上茶席', pos: [-198, 150, -228], look: [-240, 127, -266], fov: 58 },
     { name: '茶席长桌', pos: [-237.5, 130.9, -258.5], look: [-239.2, 129.4, -267.2], fov: 70 },
     { name: '镜池仰观', pos: [-224, 130.2, -259], look: [-241, 137, -267], fov: 74 },
+    // round 14: 云井塔（运河尽头的水门塔）—— 四个机位，追加在末尾以免平移旧索引
+    // views composed against the finished tower (shot + read_image verified):
+    // 80 the canal prospect from the west quay; 81 the entrance hall looking up at the
+    // cloud-well pavilion; 82 from gallery 6 straight up the eleven stacked rings;
+    // 83 the crown loggia looking north over the whole city.
+    { name: '云井塔', pos: [-200, 22, -232], look: [0, 46, -232], fov: 40 },
+    { name: '水门大厅', pos: [8, 9, -222], look: [0, 20, -232], fov: 88 },
+    { name: '云井回廊', pos: [8, 51.6, -232], look: [0, 90, -232], fov: 80 },
+    { name: '塔顶观云', pos: [0, 93.8, -232], look: [0, 40, -150], fov: 60 },
   ],
 };

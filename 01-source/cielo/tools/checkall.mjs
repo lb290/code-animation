@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import url from 'node:url';
 const here = path.dirname(url.fileURLToPath(import.meta.url));
-const all = ["palace-check","palace-hall-check","palace-salon-check","palace-base-check","palace-rooms-check","palace-chambers-check","glass-hall-check","glass-dome-check","terrace-set-check","whale-check","backcity-check","hero-check","doves-check","fish-check","giraffe-check","balloons-check","night-check","rail-clear-check","cathedral-check","station-check","opera-check","salon-cosmos-check","station-stair-check","glass-orbital-check","train-check","plaza-check","lore-check","tea-check","geo-acc-check","routes-check"];
+const all = ["palace-check","palace-hall-check","palace-salon-check","palace-base-check","palace-rooms-check","palace-chambers-check","glass-hall-check","glass-dome-check","terrace-set-check","whale-check","backcity-check","hero-check","doves-check","fish-check","giraffe-check","balloons-check","night-check","rail-clear-check","cathedral-check","station-check","opera-check","salon-cosmos-check","station-stair-check","glass-orbital-check","train-check","plaza-check","lore-check","tea-check","geo-acc-check","routes-check","cloudwell-check"];
 const onlyArg = process.argv.find((a) => a.startsWith('--only='));
 const only = onlyArg ? onlyArg.slice(7).split(',').filter(Boolean) : null;
 const names = all.filter((n) => (!only || only.includes(n)) && fs.existsSync(path.join(here, n + '.mjs')));
