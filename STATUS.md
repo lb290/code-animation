@@ -4,13 +4,13 @@
 > 本页只写**现在**；每轮的历史在 [HANDOFF.md](HANDOFF.md)，每天的过程在 [05-daily/](05-daily/)。
 
 <!-- AUTO:START -->
-> 自动生成 · 2026-11-25 00:51 · 运行 `node tools/status.mjs --write` 刷新。下面每一行都是从仓库里读出来的，不靠人记。
+> 自动生成 · 2026-11-25 20:41 · 运行 `node tools/status.mjs --write` 刷新。下面每一行都是从仓库里读出来的，不靠人记。
 
 | 项 | 值 |
 |---|---|
-| 分支 / HEAD（生成时） | `main` @ `d31715f` · fix(cielo): ?diag 同时显示 JS 堆与上限（并注明含未回收垃圾），重建 978.0 KB |
+| 分支 / HEAD（生成时） | `main` @ `fa1a8f3` · feat(cielo): 第十三轮画质系统 v2 —— 设备像素级输出 + 自适应分辨率 + 输出锐化 |
 | 工作树 | 干净 |
-| 成品 · 天空鲸城 | `04-output/CIELO.html` · 978.0 KB |
+| 成品 · 天空鲸城 | `04-output/CIELO.html` · 986.5 KB |
 | 成品 · 天空之城 · 灯祭 | `04-output/CELESTIA.html` · 145.0 KB |
 | 几何体检 | 30 项（`node tools/checkall.mjs`） |
 | 内容规模 | 观景点 80 · 抄本 31 页 |
