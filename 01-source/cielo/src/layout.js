@@ -221,6 +221,8 @@ export const L = {
     { name: '云井塔', pos: [-200, 22, -232], look: [0, 46, -232], fov: 40 },
     { name: '水门大厅', pos: [8, 9, -222], look: [0, 20, -232], fov: 88 },
     { name: '云井回廊', pos: [8, 51.6, -232], look: [0, 90, -232], fov: 80 },
-    { name: '塔顶观云', pos: [0, 93.8, -232], look: [0, 40, -150], fov: 60 },
+    // 83 stands inside the crown loggia: the city skyline reads through the 16 brass
+    // columns and the ribbed lantern dome (camera tested against the finished tower).
+    { name: '塔顶观云', pos: [0, 98, -232], look: [0, 30, -150], fov: 66 },
   ],
 };
