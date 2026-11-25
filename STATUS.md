@@ -4,12 +4,12 @@
 > 本页只写**现在**；每轮的历史在 [HANDOFF.md](HANDOFF.md)，每天的过程在 [05-daily/](05-daily/)。
 
 <!-- AUTO:START -->
-> 自动生成 · 2026-11-25 21:24 · 运行 `node tools/status.mjs --write` 刷新。下面每一行都是从仓库里读出来的，不靠人记。
+> 自动生成 · 2026-11-25 21:25 · 运行 `node tools/status.mjs --write` 刷新。下面每一行都是从仓库里读出来的，不靠人记。
 
 | 项 | 值 |
 |---|---|
-| 分支 / HEAD（生成时） | `main` @ `e1af39d` · docs(cielo): 记录第十三轮真机验收通过 + 写下 Round 14「自己精细做一座可飞入建筑」开场词 |
-| 工作树 | 干净 |
+| 分支 / HEAD（生成时） | `main` @ `c75a520` · chore(tools): 刷新 STATUS 事实块（第十三轮真机验收通过 / 下一轮 Round 14 新建筑） |
+| 工作树 | 2 个改动（3-notes/round14-kickoff-prompt.md、STATUS.md） |
 | 成品 · 天空鲸城 | `04-output/CIELO.html` · 986.5 KB |
 | 成品 · 天空之城 · 灯祭 | `04-output/CELESTIA.html` · 145.0 KB |
 | 几何体检 | 30 项（`node tools/checkall.mjs`） |
@@ -48,7 +48,7 @@
 | 9 | **真机验证**：2026-11-25 晚用户实测反馈「手机测试效果可以」——画质验收通过 | ✅ |
 | 10 | 文档同步（技术记录 / HANDOFF / 日记 / 产品方案 / README / 下一轮开场词） | ✅ |
 
-> **线上**：本次收尾提交见 `git log -1`；`CIELO.html` **986.5 KB**（单文件）、静态 2,048,729 tri / 7 批 / 66 draw calls；构建戳可在标题页与 `?diag` 核对。。安卓 Chrome 与自带浏览器都应能完整加载（含教堂 / 车站 / 大剧院）。
+> **线上**：本次收尾提交见 `git log -1`；`CIELO.html` **986.5 KB**（单文件）、静态 2,048,729 tri / 7 批 / 66 draw calls；构建戳可在标题页与 `?diag` 核对。安卓 Chrome 与自带浏览器都应能完整加载（含教堂 / 车站 / 大剧院）。
 
 ## 3. 下一步（≤5 条，按优先级）
 
@@ -67,6 +67,7 @@
 - **不要为了手机删内容**：性能靠关阴影、降渲染倍率、减点光；`?q=low|mid|high` 与自动降档是唯一手段。
 - **内存预算（第十二轮教训）**：世界几何必须走 `B({ chunked: true })` + `world.meshes` 分批流式上传，**不要**再让整个城市存在一个 JS number 数组里（峰值 1.2 GB → 安卓 Chrome 直接 OOM，自带浏览器则静默缺最后几个模块）。动 `geo.js` 的累加器 / `gl.js` 的 `meshChunked` 必须跑 `node tools/geo-acc-check.mjs`（块尾空位会让整个世界错位）。
 - **验收四件套**：`checkall`(30/30) + `mobile-check` + `mem-check` + 旧/新截图零回归，缺一不算完成。
+- **画质零回归（第十三轮新增）**：动 `src/main.js` 的分辨率模型 / 后处理 / 三档之前，先 `node tools/quality-check.mjs --tag=before` 留一份手机指标；改完再 `--tag=after` 对比。手机端「2×2 同色块 ≤4%、LapVar ≥200」是第十三轮真机验收过的基线，别改回去。
 - **工作记录**：按 [03-notes/worklog-format.md](03-notes/worklog-format.md) 写；每轮结束必须更新本页 + HANDOFF + 日记 + 提交推送。
 
 ## 5. 新会话 3 分钟上手
