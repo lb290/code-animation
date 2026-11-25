@@ -52,9 +52,14 @@ node tools/serve.mjs --host=0.0.0.0
 
 ## 第十三轮已知遗留 / 注意
 
-1. **真机帧率仍未测**：只有桌面 GPU 的 GPU ms 与拟合曲线。真机打开（URL 加 `?perf` 或直接看右上 HUD）
-   记录「室外杂乱机位 / 室内」两组 gpu ms 写回 STATUS；若 `?diag` 里 `sceneEff` 明显低于 `px0`，
-   说明该机型需要在 `src/main.js` 的 `TIERS` 里调低 `gpuMs` 或 `px0`。
+0. **真机验证已通过（2026-11-25 晚）**：用户在手机上实测后反馈「**手机测试效果可以**」——第十三轮画质
+   系统验收通过，不再有「建筑粗糙」问题。这一轮的技术结论可以当作后续轮次的基线：
+   **动渲染管线（`src/main.js` 的分辨率模型 / 后处理 / 三档）前先跑 `node tools/quality-check.mjs` 留一份指标**，
+   改完再对比，别把手机上的清晰度改回去。下一轮（Round 14 · 内容轮）的开场词见
+   [03-notes/round14-kickoff-prompt.md](03-notes/round14-kickoff-prompt.md)。
+1. **真机帧率仍未测**：只有桌面 GPU 的 GPU ms 与拟合曲线。等 Round 14 新建筑加完，
+   再在真机看右上 HUD（`FPS / gpu ms · cpu ms / 场景 MP · 输出 MP`）记录「室外杂乱机位 / 室内」两组数；
+   若 `?diag` 里 `sceneEff` 明显低于 `px0`，说明该机型需要在 `src/main.js` 的 `TIERS` 里调低 `gpuMs` 或 `px0`。
 2. **首次打开可能先抖 1–2 秒**：自适应收敛期（每 0.5 s 一个窗口），之后稳定；第二台次打开走
    `localStorage` 的已测最优点，抖动基本消失。
 3. **放大 pass 的成本上限**：输出 2.2–3.0 MP × 5 tap 在极弱 GPU 上可能 3–10 ms；`outMul` 会兜底
