@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0b1030">
+<link rel="icon" href="data:,">
+<title>星鲸环 · ASTRA</title>
+<style>
+  :root{
+    --ink:#e8eeff; --dim:#93a4cc; --gold:#e8c07a; --gold2:#f7e2b6;
+    --violet:#8f6fe0; --teal:#6fe0d0; --panel:rgba(10,16,40,.62);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;height:100%;overflow:hidden;background:#05060f;color:var(--ink);
+    font-family:"Songti SC","Noto Serif SC","Source Han Serif SC",Georgia,serif;
+    -webkit-font-smoothing:antialiased;user-select:none;cursor:default}
+  #c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+  .vignette{position:fixed;inset:0;pointer-events:none;
+    background:radial-gradient(ellipse at 50% 46%, rgba(0,0,0,0) 46%, rgba(2,4,14,.46) 100%)}
+  /* ---------- 加载 / 标题页 ---------- */
+  #loading{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    background:
+      radial-gradient(ellipse at 62% 34%, rgba(122,63,168,.36) 0%, rgba(122,63,168,0) 58%),
+      radial-gradient(ellipse at 26% 70%, rgba(46,107,168,.34) 0%, rgba(46,107,168,0) 62%),
+      radial-gradient(circle at 50% 124%, rgba(232,180,106,.20) 0%, rgba(232,180,106,0) 52%),
+      linear-gradient(180deg,#0d1132 0%,#070a1d 60%,#04050e 100%);
+    transition:opacity 1.4s ease, visibility 1.4s;z-index:20;overflow:hidden}
+  #loading:before{content:"";position:absolute;inset:-20%;opacity:.75;
+    background:
+      radial-gradient(closest-side at 74% 26%, rgba(255,236,205,.95), rgba(255,236,205,0) 72%) 0 0/9% 9% no-repeat,
+      radial-gradient(closest-side at 18% 14%, rgba(220,235,255,.85), rgba(220,235,255,0) 72%) 0 0/26% 26% no-repeat,
+      radial-gradient(closest-side at 88% 68%, rgba(180,220,255,.55), rgba(180,220,255,0) 70%) 0 0/34% 28% no-repeat,
+      radial-gradient(closest-side at 34% 44%, rgba(200,160,255,.35), rgba(200,160,255,0) 70%) 0 0/48% 40% no-repeat,
+      radial-gradient(closest-side at 60% 84%, rgba(120,200,220,.30), rgba(120,200,220,0) 70%) 0 0/40% 32% no-repeat;
+    filter:blur(3px);animation:drift 40s ease-in-out infinite alternate}
+  @keyframes drift{from{transform:translate3d(-1.5%,0,0) scale(1)}to{transform:translate3d(2%,-1%,0) scale(1.06)}}
+  #loading.hidden{opacity:0;visibility:hidden;pointer-events:none}
+  #loading .inner{position:relative;text-align:center;padding:0 6vw;z-index:1}
+  /* 徽记：一颗带环的行星（不要用圆 + 十字 —— 那会被读成"禁止通行"） */
+  #loading .crest{width:76px;height:76px;margin:0 auto 26px;position:relative;border-radius:50%;
+    border:1px solid rgba(232,192,122,.55);box-shadow:0 0 44px rgba(232,192,122,.22), inset 0 0 26px rgba(232,192,122,.10)}
+  #loading .crest:before{content:"";position:absolute;left:50%;top:50%;width:118px;height:30px;
+    border:1px solid rgba(196,216,255,.78);border-radius:50%;transform:translate(-50%,-50%) rotate(-16deg);
+    box-shadow:0 0 18px rgba(150,180,255,.25)}
+  #loading .crest:after{content:"";position:absolute;left:50%;top:50%;width:38px;height:38px;border-radius:50%;
+    background:radial-gradient(circle at 36% 30%, #ffe8bd 0%, #d9a95f 46%, #7a4a34 100%);
+    transform:translate(-50%,-50%);box-shadow:0 0 22px rgba(240,190,120,.45)}
+  #loading h1{font-size:clamp(32px,5.2vw,68px);letter-spacing:.34em;margin:0 0 8px .34em;font-weight:400;
+    color:#f6f0ff;text-shadow:0 0 42px rgba(150,170,255,.5),0 0 100px rgba(140,90,220,.45)}
+  #loading .sub{font-family:"Helvetica Neue",Arial,sans-serif;font-size:clamp(9.5px,1vw,12px);
+    letter-spacing:.44em;margin:10px 0 0 .44em;color:#b9c8f0;text-transform:uppercase}
+  #loading .rule{width:min(360px,54vw);height:1px;margin:26px auto 22px;
+    background:linear-gradient(90deg,transparent,rgba(200,216,255,.7),transparent)}
+  #loading .blurb{max-width:min(680px,86vw);margin:0 auto 30px;line-height:2.05;font-size:13.5px;color:#cfd9f4;
+    letter-spacing:.06em;text-shadow:0 1px 14px rgba(6,10,30,.7)}
+  #start{appearance:none;border:1px solid rgba(232,192,122,.75);border-radius:999px;
+    background:linear-gradient(180deg,rgba(244,232,208,.96),rgba(222,204,168,.9));
+    color:#2a2214;font-family:inherit;font-size:15.5px;letter-spacing:.34em;padding:14px 44px 14px 48px;cursor:pointer;
+    box-shadow:0 8px 34px rgba(232,192,122,.25), inset 0 0 22px rgba(255,255,255,.7);transition:all .32s ease}
+  #start:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 12px 44px rgba(232,192,122,.4), inset 0 0 22px #fff}
+  #start:disabled{opacity:.5;cursor:default}
+  #loading .keys{margin-top:26px;font-family:"Helvetica Neue",Arial,sans-serif;font-size:11px;letter-spacing:.14em;
+    color:#c6d3f0;line-height:2.05;text-align:center}
+  #loading .keys b{color:#ffe9c0;font-weight:600}
+  #loading .build{margin-top:16px;font-family:ui-monospace,Menlo,monospace;font-size:9.5px;letter-spacing:.14em;color:rgba(190,205,240,.55)}
+  /* ---------- HUD ---------- */
+  #hud{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity 1.2s ease;z-index:10}
+  #hud.show{opacity:1}
+  #hud.photo .chrome{opacity:0}
+  #hud .chrome{transition:opacity .4s}
+  .plate{position:absolute;top:24px;left:32px;color:#eef3ff;text-shadow:0 2px 16px rgba(4,8,24,.8)}
+  .plate .cn{display:block;font-size:17px;letter-spacing:.34em;margin-bottom:6px}
+  .plate .en{font-family:"Helvetica Neue",Arial,sans-serif;font-size:9px;letter-spacing:.34em;opacity:.7}
+  #fps{position:absolute;top:26px;right:32px;font-family:ui-monospace,Menlo,monospace;font-size:10.5px;
+    letter-spacing:.08em;color:rgba(220,232,255,.8);text-align:right;line-height:1.75;white-space:pre-line;
+    text-shadow:0 1px 12px rgba(4,8,24,.8)}
+  .hint{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);display:flex;gap:18px;flex-wrap:wrap;justify-content:center;
+    font-family:"Helvetica Neue",Arial,sans-serif;font-size:10.5px;letter-spacing:.14em;color:rgba(226,234,255,.9);
+    white-space:nowrap;transition:opacity 1s;text-shadow:0 2px 16px rgba(4,8,24,.8)}
+  .hint kbd{display:inline-block;min-width:18px;padding:1px 6px;margin-right:6px;border:1px solid rgba(200,216,255,.45);
+    border-radius:3px;font-family:inherit;font-size:9.5px;text-align:center;background:rgba(200,216,255,.12)}
+  .hint.fade{opacity:.26}
+  #viewname{position:absolute;left:50%;top:76px;transform:translateX(-50%);font-size:15px;letter-spacing:.34em;
+    color:#f4eaff;opacity:0;transition:opacity .5s;text-shadow:0 2px 22px rgba(4,8,24,.9)}
+  #viewname.show{opacity:.95}
+  #toast{position:absolute;left:50%;top:calc(50% + 168px);transform:translate(-50%,10px);opacity:0;
+    font-size:13.5px;letter-spacing:.22em;color:#f2f6ff;text-shadow:0 2px 22px rgba(4,8,24,.9);
+    transition:opacity .5s, transform .5s;white-space:nowrap}
+  #toast.show{opacity:1;transform:translate(-50%,0)}
+  #help{position:absolute;right:32px;bottom:92px;width:300px;padding:20px 22px;border-radius:14px;
+    border:1px solid rgba(150,180,255,.32);background:linear-gradient(180deg,rgba(12,18,44,.92),rgba(8,12,32,.9));
+    backdrop-filter:blur(12px);font-size:12.5px;line-height:2.0;color:#cfdaf6;opacity:0;transform:translateY(8px);
+    transition:all .35s;pointer-events:none;box-shadow:0 18px 60px rgba(2,4,16,.6)}
+  #help.show{opacity:1;transform:translateY(0)}
+  #help h3{margin:0 0 10px;font-size:12px;letter-spacing:.3em;color:#e8c07a;font-weight:400}
+  #help div{display:flex;justify-content:space-between;gap:14px}
+  #help span:first-child{color:#8fa2cc}
+  #help .v{color:#dbe6ff}
+  #help .build{margin-top:12px;font-family:ui-monospace,Menlo,monospace;font-size:9px;color:rgba(160,178,220,.6);letter-spacing:.1em}
+  /* 从画中坠入时的一层"星光滑开"：白/星光从画面中心扩散后淡出（纯 CSS，不挡输入） */
+  #arrive{position:fixed;inset:0;z-index:19;pointer-events:none;opacity:0;transform:scale(.35);
+    background:radial-gradient(circle at 50% 46%, #fffdf4 0%, #fff6e2 9%, rgba(214,196,255,.72) 26%,
+      rgba(64,44,128,.22) 50%, rgba(5,6,15,0) 72%);
+    transition:opacity 2.5s cubic-bezier(.2,.7,.2,1), transform 2.8s ease-out}
+  #letterbox{position:fixed;inset:0;pointer-events:none;z-index:9}
+  #letterbox:before,#letterbox:after{content:"";position:absolute;left:0;right:0;height:0;background:#02030a;
+    transition:height 1s cubic-bezier(.4,0,.2,1)}
+  #letterbox:before{top:0}#letterbox:after{bottom:0}
+  #letterbox.on:before,#letterbox.on:after{height:7vh}
+  .hudbtn{position:absolute;pointer-events:auto;appearance:none;border:1px solid rgba(180,200,255,.32);
+    background:rgba(10,16,40,.55);backdrop-filter:blur(8px);color:#dde7ff;border-radius:999px;
+    font-family:inherit;font-size:11.5px;letter-spacing:.16em;padding:8px 16px;cursor:pointer;transition:all .25s}
+  .hudbtn:hover{background:rgba(200,220,255,.16);border-color:rgba(200,220,255,.5)}
+  #btn-back{left:30px;bottom:26px}
+  #btn-back:before{content:"⟵ ";opacity:.75}
+  #btn-help{right:30px;bottom:26px}
+  #btn-quality{right:120px;bottom:26px}
+  /* ---------- 触屏 ---------- */
+  #touchui{display:none}
+  html.touch #touchui{display:block}
+  #touchui{position:fixed;inset:0;pointer-events:none;z-index:12}
+  #tu-stick{position:fixed;width:132px;height:132px;margin:-66px 0 0 -66px;border-radius:50%;
+    border:1px solid rgba(200,216,255,.38);background:radial-gradient(circle,rgba(200,216,255,.12),rgba(200,216,255,.02) 70%);
+    opacity:0;transition:opacity .18s;pointer-events:none}
+  #tu-stick.on{opacity:1}
+  #tu-knob{position:absolute;left:50%;top:50%;width:52px;height:52px;margin:-26px 0 0 -26px;border-radius:50%;
+    background:rgba(232,224,255,.42);border:1px solid rgba(232,224,255,.8);box-shadow:0 0 22px rgba(160,140,255,.5)}
+  #tu-lift{position:fixed;right:calc(14px + env(safe-area-inset-right));top:50%;transform:translateY(-50%);
+    display:flex;flex-direction:column;gap:12px;pointer-events:auto}
+  #tu-lift button{width:54px;height:54px;border-radius:50%;appearance:none;color:#e6eeff;font-size:13px;
+    font-family:inherit;letter-spacing:.1em;border:1px solid rgba(200,216,255,.3);
+    background:rgba(10,16,40,.5);backdrop-filter:blur(8px);touch-action:none;-webkit-tap-highlight-color:transparent}
+  #tu-lift button.on{background:rgba(180,210,255,.4);color:#0a1230}
+  #tu-actions{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(78px + env(safe-area-inset-bottom));
+    display:none;gap:6px;padding:9px 10px;border-radius:16px;max-width:96vw;flex-wrap:wrap;justify-content:center;
+    background:linear-gradient(180deg,rgba(8,14,36,.72),rgba(6,10,26,.82));
+    border:1px solid rgba(180,200,255,.22);backdrop-filter:blur(10px);pointer-events:auto;overflow:auto;
+    box-shadow:0 14px 40px rgba(2,4,16,.6)}
+  #tu-actions.open{display:flex}
+  #tu-menu{position:fixed;right:calc(14px + env(safe-area-inset-right));bottom:calc(14px + env(safe-area-inset-bottom));
+    width:56px;height:56px;border-radius:50%;appearance:none;border:1px solid rgba(200,216,255,.38);
+    background:rgba(10,16,40,.66);backdrop-filter:blur(10px);color:#e6eeff;font-size:19px;line-height:1;
+    pointer-events:auto;box-shadow:0 10px 30px rgba(2,4,16,.55);-webkit-tap-highlight-color:transparent}
+  #tu-menu:active{background:rgba(180,210,255,.36);color:#0a1230}
+  #tu-menu .badge{position:absolute;top:-3px;right:-3px;min-width:19px;height:19px;padding:0 4px;border-radius:10px;
+    display:none;align-items:center;justify-content:center;background:#d9536a;color:#fff;font-size:10.5px;
+    border:1.5px solid rgba(255,255,255,.8);letter-spacing:0}
+  #tu-menu.has .badge{display:flex}
+  #tu-actions::-webkit-scrollbar{display:none}
+  #tu-actions button{flex:0 0 auto;min-width:50px;height:48px;padding:0 9px;border-radius:11px;appearance:none;
+    color:#e6eeff;font-family:inherit;font-size:11.5px;letter-spacing:.1em;border:1px solid rgba(200,216,255,.18);
+    background:rgba(200,216,255,.07);-webkit-tap-highlight-color:transparent}
+  #tu-actions button:active{background:rgba(200,216,255,.26);color:#0a1230}
+  #tu-rotate{position:fixed;left:0;right:0;top:0;z-index:13;display:none;align-items:center;justify-content:center;gap:10px;
+    padding:calc(10px + env(safe-area-inset-top)) 16px 10px;background:rgba(6,10,26,.85);color:#e6eeff;
+    font-size:12.5px;letter-spacing:.14em;backdrop-filter:blur(8px);pointer-events:auto}
+  #tu-rotate.on{display:flex}
+  #tu-rotate button{appearance:none;border:1px solid rgba(200,216,255,.4);background:transparent;color:#e6eeff;
+    border-radius:999px;padding:3px 12px;font-family:inherit;font-size:12px}
+  html.touch #hint{display:none}
+  html.touch #help{display:none}
+  html.touch #help.show{display:block;pointer-events:auto}
+  html.touch .desk-only{display:none !important}
+  html:not(.touch) .touch-only{display:none !important}
+  html.touch .plate{top:calc(16px + env(safe-area-inset-top));left:calc(16px + env(safe-area-inset-left))}
+  html.touch #fps{top:calc(16px + env(safe-area-inset-top));right:calc(16px + env(safe-area-inset-right))}
+  html.touch #btn-back{bottom:calc(14px + env(safe-area-inset-bottom));left:calc(16px + env(safe-area-inset-left));
+    padding:10px 18px;font-size:12.5px}
+  html.touch #btn-help{display:none}
+  html.touch #btn-quality{display:none}
+  #toast{max-width:92vw}
+  @media (orientation:portrait) and (max-width:760px){
+    #toast{font-size:12px;white-space:normal;text-align:center}
+    .hint{display:none}
+  }
+  @media (max-width:820px){ #viewname{font-size:13px;letter-spacing:.24em} }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="arrive"></div>
+<div class="vignette"></div>
+<div id="letterbox"></div>
+
+<div id="loading">
+  <div class="inner">
+    <div class="crest"></div>
+    <h1>星鲸环</h1>
+    <div class="sub">ASTRA — The Whale Cradle</div>
+    <div class="rule"></div>
+    <p class="blurb">画布上的城只是一半。露台上那幅画的背面，是一片没有人画完的星海。<br>
+      这里漂着一座直径一公里的环站——<b style="color:#ffe9c0">鲸环站</b>：象牙白的环带、黄铜的辐条、玻璃的穹顶，
+      巨大的环带行星悬在站后，星云像潮水一样漫过天空。<br>
+      近处的一圈是天空鲸的摇篮：它们从这里下潜，去驮起后来的每一座云上之城。<br>
+      <span style="color:#bfe6ff">飞进环带、穿过辐条、落进穹顶中庭，或者什么都不做，只是让巡游带着你绕它一圈。</span></p>
+    <button id="start" disabled>正在点亮星海…</button>
+    <div class="keys desk-only">
+      <b>WASD</b> 飞行 &nbsp;·&nbsp; <b>鼠标</b> 环视 &nbsp;·&nbsp; <b>Q / E</b> 升降 &nbsp;·&nbsp; <b>Shift</b> 加速 &nbsp;·&nbsp; <b>滚轮</b> 调速<br>
+      <b>空格</b> 自动巡游 &nbsp;·&nbsp; <b>1–9 / 0</b> 观景点 &nbsp;·&nbsp; <b>Z / X</b> 切换 &nbsp;·&nbsp; <b>V</b> 画质 &nbsp;·&nbsp; <b>P</b> 摄影 &nbsp;·&nbsp; <b>R</b> 回到画中
+    </div>
+    <div class="keys touch-only">
+      <b>左半屏</b> 按住 = 摇杆飞行 &nbsp;·&nbsp; <b>右半屏</b> 拖动 = 转视角（两手可同时）<br>
+      <b>升 / 降</b> 在右侧 &nbsp;·&nbsp; 右下 <b>☰</b> 展开动作条：观景 / 巡游 / 画质 / 回画中
+    </div>
+    <div class="build">构建 __BUILD_STAMP__</div>
+  </div>
+</div>
+
+<div id="hud">
+  <div class="chrome plate"><span class="cn">星鲸环</span><span class="en">ASTRA · THE WHALE CRADLE</span></div>
+  <div class="chrome" id="fps"></div>
+  <div class="chrome" id="viewname"></div>
+  <div class="chrome hint" id="hint">
+    <span><kbd>W A S D</kbd>飞行</span><span><kbd>鼠标</kbd>环视</span><span><kbd>Q E</kbd>升降</span>
+    <span><kbd>空格</kbd>巡游</span><span><kbd>1-9</kbd>观景</span><span><kbd>Z X</kbd>切换</span><span><kbd>V</kbd>画质</span><span><kbd>R</kbd>回画中</span><span><kbd>H</kbd>帮助</span>
+  </div>
+  <div id="toast"></div>
+  <button class="chrome hudbtn" id="btn-back" title="回到天空鲸城露台的画前">回到画中</button>
+  <button class="chrome hudbtn" id="btn-quality">画质</button>
+  <button class="chrome hudbtn" id="btn-help">帮助</button>
+  <div class="chrome" id="help">
+    <h3>操 作</h3>
+    <div class="desk-only"><span>W A S D</span><span class="v">飞行</span></div>
+    <div class="desk-only"><span>鼠标</span><span class="v">环视（点击画面锁定）</span></div>
+    <div class="desk-only"><span>Q / E</span><span class="v">下降 / 上升</span></div>
+    <div class="desk-only"><span>Shift / 滚轮</span><span class="v">加速 / 调飞行速度</span></div>
+    <div class="desk-only"><span>空格</span><span class="v">自动巡游（绕环站一周）</span></div>
+    <div class="desk-only"><span>1 – 9 / 0</span><span class="v">跳转观景点</span></div>
+    <div class="desk-only"><span>Z / X</span><span class="v">上一个 / 下一个观景点</span></div>
+    <div class="desk-only"><span>V</span><span class="v">画质：流畅 / 均衡 / 精细（会记住）</span></div>
+    <div class="desk-only"><span>P</span><span class="v">摄影模式（隐藏界面）</span></div>
+    <div class="desk-only"><span>G</span><span class="v">全屏</span></div>
+    <div class="desk-only"><span>H</span><span class="v">收起此面板</span></div>
+    <div class="desk-only"><span>R</span><span class="v">回到画中（天空鲸城露台）</span></div>
+    <div class="touch-only"><span>左半屏拖动</span><span class="v">摇杆飞行</span></div>
+    <div class="touch-only"><span>右半屏拖动</span><span class="v">转视角（可边飞边转）</span></div>
+    <div class="touch-only"><span>右缘 升 / 降</span><span class="v">上下高度</span></div>
+    <div class="touch-only"><span>右下 ☰</span><span class="v">动作条：观景 / 巡游 / 画质 / 回画中</span></div>
+    <div class="build">构建 __BUILD_STAMP__</div>
+  </div>
+</div>
+
+<div id="touchui" hidden>
+  <div id="tu-stick"><span id="tu-knob"></span></div>
+  <div id="tu-lift">
+    <button id="tu-up" aria-label="上升">升</button>
+    <button id="tu-down" aria-label="下降">降</button>
+  </div>
+  <button id="tu-menu" aria-label="打开菜单" aria-expanded="false"><span class="ic">☰</span><span class="badge" id="tu-badge">0</span></button>
+  <div id="tu-actions">
+    <button data-act="home">初降</button>
+    <button data-act="prev">‹ 景</button>
+    <button data-act="next">景 ›</button>
+    <button data-act="tour">巡游</button>
+    <button data-act="quality">画质</button>
+    <button data-act="photo">摄影</button>
+    <button data-act="back">回画中</button>
+    <button data-act="help">帮助</button>
+    <button data-act="fullscreen">全屏</button>
+  </div>
+  <div id="tu-rotate"><span>把平板横过来，星海更开阔</span><button id="tu-rotate-x">知道了</button></div>
+</div>
+
+<script>/*__SCRIPT__*/</script>
+</body>
+</html>
