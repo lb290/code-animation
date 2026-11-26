@@ -17,6 +17,8 @@ import { detectTouch, createTouch } from './touch.js';
 import { createPostcard } from './postcard.js';
 import { ROUTES, routeById } from './routes.js';
 import { LORE } from './lore.js';
+// Round 15 画中世界：露台画架 = 通往 ASTRA 的门
+import { createPortal, RETURN_POSE } from './portal.js';
 
 const canvas = document.getElementById('c');
 const gl = createGL(canvas);
@@ -44,6 +46,8 @@ const DBG_FOV = params.has('fov') ? Number(params.get('fov')) : 55;
 // ?fw=N pre-loads N fireworks shells, ?fw=0 disables them entirely.
 const TOD = params.has('tod') ? String(params.get('tod')).toLowerCase() : 'day';
 const FW = params.has('fw') ? Number(params.get('fw')) : null;
+// Round 15 画中世界：?at=easel 从 ASTRA 归来，开局落在画架前（见 boot 段 returnFromPainting）
+const AT_EASEL = params.get('at') === 'easel';
 
 // ---------------------------------------------------------------- round 11/13: touch + quality
 // 第十三轮把画质档从「CSS 像素的百分数」改成**像素预算**——用户反馈手机端"不卡了但建筑很粗糙"，
@@ -185,6 +189,9 @@ console.log('[main] bbDyn: ' + (ctx.bbDyn || []).map((s) => s.name).join(' '));
 const cam = new Camera();
 if (DBG_CAM && DBG_LOOK) cam.setCam(DBG_CAM, DBG_LOOK, DBG_FOV);
 else cam.setView(VIEW0, true);
+// Round 15 画中世界：?at=easel 开局落在画布前（画布中心 + 法线 × 2.4 m，抬高 0.15 m）。
+// 显式的 ?cam&look 优先，验收脚本仍可指定机位。
+if (AT_EASEL && !(DBG_CAM && DBG_LOOK)) cam.setCam(RETURN_POSE.pos, RETURN_POSE.look, RETURN_POSE.fov);
 // ?tour=<0..1> parks the cinematic tour at that phase (use with &freeze=)
 if (params.has('tour')) {
   cam.startTour();
@@ -445,6 +452,34 @@ function toast(msg, ms = 2400) {
   toastT = setTimeout(() => toastEl.classList.remove('show'), ms);
 }
 
+// ---------------------------------------------------------------- Round 15：画中世界（露台画架传送门）
+// 走近画架且看向画布 → 一行提示 + 画布微光；点击画布 / 回车 → 2.4 s 坠入过渡 → ASTRA.html。
+// 热点未激活时它什么都不做：canvas 点击仍是原来的「进入指针锁定」，键盘/UI 完全不变。
+const portal = createPortal({ cam, touch: TOUCH });
+// 触屏轻点画布进画（只在 TOUCH 为真时注册，桌面端一条触摸逻辑都不新增）。
+// touch.js 的 pointerdown 会 preventDefault，click 不一定到 canvas，所以这里自己认一次轻点：
+// 单指、位移 < 14 px、时长 < 650 ms —— 摇杆/环视的拖动不会被误判成"点"。
+if (TOUCH) {
+  let tapInfo = null;
+  const downIds = new Set();
+  canvas.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'mouse') return;
+    downIds.add(e.pointerId);
+    tapInfo = { id: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now(), multi: downIds.size > 1 };
+  });
+  window.addEventListener('pointerup', (e) => {
+    if (e.pointerType === 'mouse') return;
+    downIds.delete(e.pointerId);
+    if (!tapInfo || tapInfo.id !== e.pointerId) return;
+    const moved = Math.hypot(e.clientX - tapInfo.x, e.clientY - tapInfo.y);
+    const single = !tapInfo.multi && downIds.size === 0;
+    const fast = performance.now() - tapInfo.t < 650;
+    tapInfo = null;
+    if (fast && single && moved < 14) portal.tap();
+  });
+  window.addEventListener('pointercancel', (e) => { downIds.delete(e.pointerId); tapInfo = null; });
+}
+
 // ---------------------------------------------------------------- 导览抄本
 // 每处地标一个抵达区域：首次飞进去把那一页"显影"进抄本（G / 底部导览打开）。
 // 第十一轮修订：默认不再自动弹卡片（用户反馈导览内容不要挡画面），只在菜单/左下挂「新」角标。
@@ -677,6 +712,8 @@ function cycleQuality(dir = 1) {
 // pointer lock look
 let locked = false;
 canvas.addEventListener('click', () => {
+  // Round 15 画中世界：画布热点激活时点击 = 坠入画中，此时不再请求指针锁定
+  if (portal.enterFromInput()) return;
   // 触屏上没有指针锁定：请求它会失败并吞掉手势（第十一轮）
   if (TOUCH) return;
   if (!locked && !NOUI) canvas.requestPointerLock?.();
@@ -703,6 +740,11 @@ window.addEventListener('keydown', (e) => {
     if (e.code === 'ArrowDown' || e.code === 'KeyX' || e.code === 'ArrowRight') { e.preventDefault(); guide.nav(1); return; }
     if (e.code === 'ArrowUp' || e.code === 'KeyZ' || e.code === 'ArrowLeft') { e.preventDefault(); guide.nav(-1); return; }
     if (e.code === 'KeyU') { e.preventDefault(); guide.toggleSpoiler(); return; }
+    e.preventDefault();
+    return;
+  }
+  // Round 15 画中世界：画布热点激活时回车 = 坠入画中；其他按键完全不变
+  if ((e.code === 'Enter' || e.code === 'NumpadEnter') && portal.enterFromInput()) {
     e.preventDefault();
     return;
   }
@@ -801,6 +843,8 @@ window.__cielo = {
   guide,
   postcard,
   touch,
+  // 第十五轮：画中世界（自动化测试用；enter({dry:true}) 只跑状态机、不跳转）
+  portal,
   build: BUILD,
   diag: showDiag,
   isTouch: TOUCH,
@@ -838,6 +882,8 @@ function drawFrame(now) {
   cam.update(FREEZE >= 0 ? 0 : dt);
   // 主题航线（第十二轮）：推进站点、判定"用户接管"
   routeTick(FREEZE >= 0 ? 0 : dt);
+  // Round 15 画中世界：提示 / 微光 / 坠入过渡（过渡按真实时间走，?freeze 下也是 2.4 s）
+  portal.update(dtRaw);
   // 冻结帧（截图 / ?freeze=）时 dt 恒为 0，抵达检测用一个固定步长，卡片才会出现
   if (started) guide.update(cam.pos, FREEZE >= 0 ? 0.24 : dt);
   ambience.camPos = cam.pos;
@@ -1171,9 +1217,14 @@ function ready() {
 function startExperience() {
   started = true;
   try { ambience.start(); } catch (e) { console.warn('audio', e); }
-  // gentle push-in from a slightly higher, wider pose to the hero framing
-  cam.setCam([6, 38.5, 108], [-18, 56, -200], 52);
-  cam.setView(0, false);
+  // Round 15 画中世界：从画中归来时保留画架前的落位，不再推镜回露台全景
+  if (AT_EASEL) {
+    cam.setCam(RETURN_POSE.pos, RETURN_POSE.look, RETURN_POSE.fov);
+  } else {
+    // gentle push-in from a slightly higher, wider pose to the hero framing
+    cam.setCam([6, 38.5, 108], [-18, 56, -200], 52);
+    cam.setView(0, false);
+  }
   if (TOUCH) {
     setTimeout(() => toast('左手推摇杆飞行 · 右手同时拖动转视角', 3800), 2200);
     setTimeout(() => toast('右下 ☰ 菜单：导览 / 昼夜 / 烟花 / 明信片', 3800), 6800);
@@ -1188,6 +1239,16 @@ function startExperience() {
   if (!TOUCH) canvas.requestPointerLock?.();
 }
 if (startBtn) startBtn.addEventListener('click', startExperience);
+// Round 15 画中世界：从 ASTRA 归来（?at=easel）——跳过标题页直接站在画架前，给一句
+// 「你从画中归来」。没有用户手势，所以不启动音频、也不请求指针锁定。
+function returnFromPainting() {
+  started = true;
+  cam.setCam(RETURN_POSE.pos, RETURN_POSE.look, RETURN_POSE.fov);
+  hideLoading();
+  hud?.classList.add('show');
+  hintEl?.classList.add('fade');
+  setTimeout(() => toast('你从画中归来', 4200), 900);
+}
 if (NOUI) {
   hideLoading();
   hud?.classList.add('show');
@@ -1216,6 +1277,8 @@ requestAnimationFrame((n) => {
   last = n;
   requestAnimationFrame(drawFrame);
   setTimeout(ready, 60);
+  // Round 15 画中世界：?at=easel 且没给 ?noui → 直接回到画架前（不经过标题页）
+  if (AT_EASEL && !NOUI) returnFromPainting();
   // ?postcard=1：截图/验收时自动冲洗一张明信片；?diag 打开诊断面板
   if (params.has('postcard')) setTimeout(() => { if (started) postcard.open(); }, 1800);
   if (params.has('diag')) setTimeout(() => showDiag(), 1200);

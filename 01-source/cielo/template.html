@@ -344,6 +344,67 @@
     #placecard{left:16px;right:16px;bottom:92px;width:auto}
     .gb-foot .tip{display:none}
   }
+
+  /* ================= 第十五轮：画中世界 · 露台画架传送门 ================= */
+  /* 提示：只在"走近画架 + 看向画布"时淡入，不挡鼠标（pointer-events:none），
+     风格跟 HUD 一致：象牙白字 + 黄铜细线 + 宋体。 */
+  #portal-hint{position:fixed;left:50%;bottom:calc(112px + env(safe-area-inset-bottom));
+    transform:translate(-50%,12px);display:flex;align-items:center;gap:11px;
+    padding:11px 24px;border-radius:999px;border:1px solid rgba(224,170,78,.55);
+    background:linear-gradient(180deg,rgba(18,34,74,.52),rgba(8,20,44,.62));
+    backdrop-filter:blur(10px);color:#fff8e6;font-size:13px;letter-spacing:.26em;
+    white-space:nowrap;pointer-events:none;opacity:0;visibility:hidden;
+    transition:opacity .5s ease,transform .5s ease,visibility .5s;
+    text-shadow:0 1px 12px rgba(10,30,60,.7);
+    box-shadow:0 14px 40px rgba(4,12,30,.34), inset 0 0 0 1px rgba(255,255,255,.08)}
+  #portal-hint.show{opacity:1;visibility:visible;transform:translate(-50%,0)}
+  #portal-hint .ph-orn{color:var(--gold2);font-size:10px;letter-spacing:0;text-shadow:0 0 10px rgba(246,215,154,.9)}
+  #portal-hint .ph-sep{color:rgba(246,215,154,.62);letter-spacing:0}
+  #portal-hint .ph-act{font-family:"Helvetica Neue",Arial,sans-serif;font-size:11.5px;letter-spacing:.14em;color:#f6d79a}
+  #portal-hint .ph-act b{display:inline-block;min-width:16px;padding:1px 5px;margin:0 4px;
+    border:1px solid rgba(246,215,154,.55);border-radius:3px;font-weight:400;font-size:10px;
+    text-align:center;background:rgba(246,215,154,.10)}
+  html.touch #portal-hint{bottom:calc(150px + env(safe-area-inset-bottom));font-size:12.5px;letter-spacing:.2em}
+
+  /* 画布微光：portal.js 每帧把画布中心投影成屏幕坐标，只动 DOM，不改几何 */
+  #portal-glow{position:fixed;left:0;top:0;width:80px;height:80px;pointer-events:none;z-index:8;
+    transform:translate(-50%,-50%);border-radius:50%;opacity:0;transition:opacity .45s ease;
+    background:radial-gradient(circle,rgba(255,251,235,.55) 0%,rgba(246,215,154,.30) 34%,
+      rgba(167,201,240,.14) 58%,rgba(167,201,240,0) 74%);
+    mix-blend-mode:screen}
+  #portal-glow.on{animation:pvBreath 3.4s ease-in-out infinite}
+  @keyframes pvBreath{0%,100%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.13)}}
+  #hud.photo ~ #portal-glow.on{opacity:0;animation:none}
+
+  /* 坠入画中的过渡层：白 + 星光扩散（2.4 s）；opacity / scale 由 portal.js 每帧驱动 */
+  /* 底白单独一层 .pv-bg：这样星光/文字不会被父层 opacity 乘掉 */
+  #portal-veil{position:fixed;inset:0;z-index:19;pointer-events:none;opacity:0;overflow:hidden}
+  #portal-veil.on{opacity:1}
+  #portal-veil .pv-bg{position:absolute;inset:0;opacity:0;
+    background:radial-gradient(ellipse at 50% 50%,#fffdf6 0%,rgba(255,248,228,.92) 30%,
+      rgba(186,214,255,.52) 58%,rgba(12,22,54,0) 82%)}
+  #portal-veil .pv-flash{position:absolute;inset:-20%;border-radius:50%;opacity:0;transform:scale(.25);
+    background:radial-gradient(circle at 50% 50%,#fffef8 0%,rgba(255,247,224,.95) 22%,
+      rgba(224,236,255,.5) 46%,rgba(224,236,255,0) 70%)}
+  #portal-veil .pv-stars{position:absolute;left:50%;top:50%;width:3px;height:3px;border-radius:50%;
+    background:#fffdf2;opacity:0;transform:translate(-50%,-50%) scale(.35);
+    box-shadow: 36px -18px 0 0 rgba(255,248,224,.9), -74px 44px 0 1px rgba(255,235,190,.8),
+      118px 66px 0 0 rgba(220,238,255,.85), -142px -96px 0 0 rgba(255,255,255,.75),
+      172px -132px 0 1px rgba(255,240,210,.7), -212px 150px 0 0 rgba(208,228,255,.7),
+      258px 210px 0 1px rgba(255,255,255,.6), -36px 236px 0 0 rgba(255,245,220,.7),
+      88px -242px 0 1px rgba(230,240,255,.7), -318px -36px 0 0 rgba(255,255,255,.55),
+      336px 96px 0 1px rgba(255,236,200,.6), -156px -292px 0 0 rgba(215,236,255,.6),
+      208px 312px 0 1px rgba(255,250,238,.55), -392px 212px 0 0 rgba(255,255,255,.5),
+      424px -196px 0 1px rgba(240,232,255,.55), -246px -386px 0 0 rgba(255,255,255,.5),
+      296px -412px 0 1px rgba(255,244,218,.5), -468px 376px 0 0 rgba(214,236,255,.45),
+      486px 402px 0 1px rgba(255,255,255,.45)}
+  #portal-veil .pv-word{position:absolute;left:0;right:0;bottom:32%;text-align:center;
+    color:#fffaf0;font-size:clamp(16px,2.1vw,26px);letter-spacing:.62em;opacity:0;
+    text-shadow:0 2px 30px rgba(120,160,255,.75),0 1px 6px rgba(40,70,130,.5)}
+  /* 坠入期间把舞台让给画面：HUD / 触屏条 / 航线 / 卡片一起淡出（portal.js 切 html.portal-in） */
+  html.portal-in #hud .chrome,html.portal-in #newbadge,html.portal-in #routebar,
+  html.portal-in #placecard,html.portal-in #touchui,html.portal-in #portal-hint{
+    opacity:0 !important;transition:opacity .35s ease !important}
 </style>
 </head>
 <body>
@@ -385,6 +446,14 @@
   <div class="chrome" id="tod">白昼</div>
   <div id="newbadge">抄本 · 0 条新记载</div>
   <div id="toast"></div>
+  <!-- 第十五轮：画中世界 · 走近画架且看向画布时出现（.show 由 src/portal.js 切换） -->
+  <div id="portal-hint" class="chrome" aria-live="polite" aria-hidden="true">
+    <span class="ph-orn">✦</span>
+    <span class="ph-cn">走近画中世界</span>
+    <span class="ph-sep">·</span>
+    <span class="ph-act desk-only">点击画布 / <b>回车</b></span>
+    <span class="ph-act touch-only">轻点画布</span>
+  </div>
   <div id="help">
     <h3>操 作</h3>
     <div class="touch-only"><span>左半屏拖动</span><span class="v">摇杆飞行</span></div>
@@ -411,6 +480,15 @@
     <div class="touch-only"><span>画质</span><span class="v">流畅 / 均衡 / 精细 —— 画面更精细就选「精细」</span></div>
     <div class="build">构建 __BUILD_STAMP__</div>
   </div>
+</div>
+
+<!-- ---------- 第十五轮：画中世界 · 画布微光 + 坠入画中过渡层（src/portal.js 驱动） ---------- -->
+<div id="portal-glow" aria-hidden="true"></div>
+<div id="portal-veil" aria-hidden="true">
+  <span class="pv-bg" id="portal-bg"></span>
+  <span class="pv-flash" id="portal-flash"></span>
+  <span class="pv-stars" id="portal-stars"></span>
+  <span class="pv-word" id="portal-word">坠入画中</span>
 </div>
 
 <!-- ---------- 抵达卡片：第一次飞进某处地标时滑出 ---------- -->
