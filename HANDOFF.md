@@ -1,3 +1,99 @@
+# 交接 · 天空鲸城「CIELO」（2026-11-26 深夜，第十五轮：画中世界「星鲸环 ASTRA」—— 第二个可游览世界 + 露台画架传送门）
+
+> **2026-11-26 · 第十五轮**：用户：「**现在天空鲸城项目文件是不是太大了，我设想是再做一个新的世界（项目），
+> 「天空鲸城 CIELO」从露台的画架上的画，靠近后触发点击事件，进入新的世界。新的世界是在太空中，
+> 你先制作一个美丽的太空环境，做一个巨大空间站出来。如果你有更好的想法可以进行实现。**」
+> 施工合同：[03-notes/cielo-round15-astra-brief.md](03-notes/cielo-round15-astra-brief.md)（§1 是"文件是不是太大"的实测答案）。
+
+## 第十五轮现状（先读这段）
+
+- **结论是"不塞进同一个文件，另开一个世界"**：CIELO.html 1,061.4 KB / gzip 355.8 KB、静态几何 2,163,136 tri
+  （软上限 220 万，已无余量）；把太空世界塞进同一个构建会让单文件与显存一起变重、两套美术互相牵制。
+  所以本轮把它做成**第二个项目** `01-source/astra/` → 独立单文件 `04-output/ASTRA.html`
+  **195,206 B（190.6 KB）/ gzip 67.3 KB / 静态 281,212 tri**，只在你推门进去时才下载。
+  同时**清掉 10 个过期的分施工员构建**（`CIELO.cathedral/opera/salon/rooms/station/train/plaza/orbital/lead/plaza.dev.html`，
+  合计 **8.15 MB**），并把 `.gitignore` 里 `04-output/<作品>.*.html`（`--as=` 产物）设成忽略，只留正式成品与 `.dev`。
+- **新世界「星鲸环 ASTRA」**（`01-source/astra/`，37 个文件 / 363 KB；**共享引擎、各自世界**）：
+  `engine.js` 只读再导出 CIELO 的 `geo/lib3d/math/gl/actor/fx/touch`；本体只有自己的
+  `main/world/camera/layout/palette/shaders + glsl/` 与三个内容模块。**主循环从第十三轮管线移植**
+  （三档 + 自适应分辨率 + FXAA + bloom + 输出分辨率 unsharp），`lit/bill/inst/add/post` 着色器原样复制，
+  **只有天空是新写的**（`space-sky.fs.glsl`）。
+- **太空环境**（全解析、无贴图）：深靛紫虚空 + 三瓣星云（大云/丝状/暗尘裂谷）+ 斜贯天空的银河带 +
+  **三维格点星场**（不是等距圆柱投影——上一版在天顶会出现"幕布竖纹"）+ 少数四芒亮星 + **环带巨行星**
+  （气态条带 / 晨昏线暖边 / 夜面环反照 / 行星环 + 行星在环上的投影）+ 一颗小卫星 + 远处恒星与光晕。
+- **环站「鲸环站 THE WHALE CRADLE」**（281,212 tri，三个模块各配纯 node 体检）：
+  - `station-ring.js` **129,388 tri**：直径 1,200 m 居住环带（截面 92×74 m、96 扇区、12 道肋拱）、
+    **4,512 扇舷窗**（暖金/青绿/熄灯、逐窗亮度抖动）、**可飞入的对接港**（楔形真开口 70.4×52 m + 150 m 舌台
+    + 2 座导引塔 + 港内暖光机库/货箱/门式吊车）、**6 组花瓣太阳能帆**（每组 4 片错开）、散热鳍、桅杆信标、检修 greebles；
+    内圈回廊 4 条连续光环 + 4 排内壁窗（第一版内圈是黑洞，看不见）。
+  - `station-core.js` **128,050 tri**：中央脊柱塔（-300..+460，底部配重引擎 + 顶部灯塔）、**6 条辐条**（肋环/窗带/胶囊舱）、
+    鼓座 + **24 肋玻璃穹顶**（r=132）、**北门洞 110 m 宽 × 72 m 高（真开口，门套/门柱/导向灯）**、
+    可飞行中庭（r≤120、y 66..252）：星图地面、**56 m 黄铜鲸骨**（6 根吊索）、环廊 + 4 座浑天仪 + 12 串风铃 + 祭坛铜灯。
+  - `space-props.js` **23,774 tri**：69 块小行星/冰屑、**3 头「星座鲸」**（401 颗星点 + 淡轮廓管，900/780/700 m，
+    1200–3000 m 外）、3 艘货船（系泊/进港/远航剪影）、8 个浮标、远景姊妹站、光尘。
+- **可游览**：10 个观景点（0 画中初降 / 1 环站全景 / 2 环带立面 / 3 对接港 / 4 穹顶外 / 5 穹顶中庭 /
+  6 鲸骨祭坛 / 7 脊柱塔顶 / 8 环下仰望 / 9 星云远眺）、自由飞行（三档画质；触屏沿用 CIELO 的摇杆/环视/升降/菜单）、
+  空格自动巡游（132 s 绕站一周）；`?from=easel` 落地即自动开画（不再要求点第二次）。
+- **传送门（CIELO 侧）**：`src/portal.js`（323 行）+ `main.js`（+69 行，全带 Round 15 注释）+ `template.html`（+78 行）。
+  画布世界锚点 `(-1.865, 31.24, 88.824)`、法线 `(0.8725, 0, -0.4886)`；近距 ≤5.5 m 且视线夹角 ≤25.8° → 提示 →
+  点击画布 / 回车 /（触屏）轻点 → **2.4 s 坠入过渡**（dolly-in + FOV 46→26 + 白/星光扩散）→ `ASTRA.html?from=easel`；
+  ASTRA 里按 `R` → `CIELO.html?at=easel`，跳过标题页直接站在画架前并 toast「你从画中归来」。
+  **热点未激活时 canvas 点击仍是原来的指针锁定**（桌面零回归）。
+- **验收（全部串行）**：
+  - CIELO：`node build.mjs` → **1,061.4 KB**；`node tools/checkall.mjs` → **31/31 PASS**（静态三角仍 **2,163,136**）；
+    `node tools/portal-check.mjs` → **34 PASS / 0 FAIL**；`node tools/mobile-check.mjs` → **PASS**。
+  - ASTRA：`node build.mjs` → **190.6 KB**；`node tools/checkall.mjs` → **4/4 PASS**
+    （ring 40 条 / core 8 组 / props 46 条 / 世界体检 24 条；含真门洞射线、内腔 0 顶点、两次构建逐 float 确定性）；
+    `node tools/mobile-check.mjs` → **17 PASS / 0 FAIL**。
+  - **端到端**：CIELO 画架前点击 → 2.4 s 后 `location.href = ASTRA.html?from=easel` → ASTRA 加载 281,212 tri、
+    自动落位观景点 0；ASTRA 按 R → CIELO?at=easel 站在画架前（两条都实测，截图 `04-output/_r15/{e2e_arrive,rt_return}.png`）。
+- **抄本**：第 32 页「写生角」补第三段（"画布比画面深一点…那是天空鲸的摇篮在唱歌"），源仍是 `src/lore.js`，
+  32 页 / 11,202 字不变，`lore-check` PASS。
+
+## 第十五轮 30 秒上手
+
+~~~powershell
+# 新世界（第二项目）
+cd F:/AI/dsh/code-animation/01-source/astra
+node build.mjs                  # → 04-output/ASTRA.html（190.6 KB，单文件，零外部请求）
+node tools/checkall.mjs         # 4 项：ring / core / props / 世界体检
+node tools/mobile-check.mjs     # 触屏 + 桌面回归（需要 Chrome，约 3 分钟）
+node tools/views.mjs ../../../04-output/_r15/astra   # 10 个观景点静帧（需先起 serve）
+
+# 原世界（回归）
+cd F:/AI/dsh/code-animation/01-source/cielo
+node build.mjs                  # → 04-output/CIELO.html（1,061.4 KB）
+node tools/checkall.mjs         # 31/31
+node tools/portal-check.mjs     # 34 条：画架传送门
+node tools/mobile-check.mjs     # 触屏/画质/抄本/明信片 + 桌面回归
+~~~
+
+机位：`ASTRA.html?view=0..9`；`?noui` `?freeze=2` `?cam=x,y,z&look=x,y,z&fov=` `?q=low|mid|high`
+`?nomod=stationRing,stationCore,spaceProps` `?diag`。传送门：`CIELO.html?cam=0.23,31.39,87.65&look=-1.86,31.24,88.82`
+是画架前；`CIELO.html?at=easel` 是从画中归来的落位。
+
+## 第十五轮已知遗留 / 注意
+
+1. **两个世界共享引擎、各自持有着色器**：`astra/src/engine.js` 只读引用 CIELO 的 geo/lib3d/math/gl/actor/fx/touch；
+   `lit/bill/inst/add/post` 在 ASTRA 是**复制件**。谁要动被共享的引擎文件，必须先跑 CIELO 的 `checkall` + `mobile-check`。
+2. **长帆张线在个别机位读成"细竖线"**：太阳能帆的细张线在某些视角近乎正对相机，会在天空里画出发丝般的竖线
+   （view 7 上方可见）。**不是渲染 bug** —— core 做过全量射线排查，只有 `no=world` 时消失，就是几何本身。
+   要彻底消掉只能给张线加粗或改帆角（`station-ring.js` 的 `SAILS` 常量）。
+3. **室内仍偏亮**：中庭已是"暖金大厅"而非白爆（core 把室内 emissive 0.10→0.062、点光 int 降到 0.45–0.80），
+   但比 CIELO 室内亮一档；想更沉可先把 `astra/src/palette.js` 的 `LOOK.exposure` 1.04 降到 0.98。
+4. **巨行星/星云是天空着色器不是几何**：改行星大小、环倾角、星云颜色只动 `palette.js` 的 `SKY` 与 `space-sky.fs.glsl`；
+   `SKY.planetAng` 是角半径（rad），`SKY.planetAxis` 决定环的椭圆姿态。
+5. **星场是三维格点**：为消掉等距圆柱投影在天顶的"幕布竖纹"改成 3D 格胞；改 `starLayer` 的 `scale` 即改密度
+   （128/240/420 三层，阈值 0.982/0.975/0.962）。
+6. **无音频**：ASTRA 本轮没接音频（CIELO 的 `audio.js` 是城市环境音，不适用）；要加就新写一个太空 drone。
+7. **观景点只追加**：`astra/src/layout.js` 的 `L.views` 与 `astra-check` 的"观景点 10 个"断言绑定；加机位要同时改断言。
+8. **PWA 只覆盖 CIELO**：ASTRA 没有自己的 manifest / service worker，靠静态目录相对链接跳转；
+   装主屏幕离线玩仍只有 CIELO。要覆盖照 `cielo.webmanifest / cielo-sw.js` 再来一份（下一轮可选）。
+9. **分施工员产物已忽略**：`04-output/CIELO.*.html / ASTRA.*.html`（`--as=` 构建）现在被 `.gitignore` 忽略，
+   只留 `CIELO.html / ASTRA.html / CELESTIA.html` 与三份 `.dev.html`。别再把这些中间构建提交进仓库。
+
+---
+
 # 交接 · 天空鲸城「CIELO」（2026-11-25 深夜，第十四轮：云井塔 —— 运河上的水门塔）
 
 > **2026-11-25 · 第十四轮**：用户：「本轮任务（Round 14 · 内容轮）：**精细制作一座新的可飞入幻想建筑（高塔型建筑，

@@ -62,7 +62,8 @@
   <header>
     <div class="kicker">Code · Animation</div>
     <h1>用纯代码，<em>长出</em>会动的世界</h1>
-    <p class="lede">两座天空城市、一部粒子影片。画面来自 numpy 数组运算与手写 WebGL2 着色器，音频来自加法合成与 WebAudio，帧直接灌进 ffmpeg —— 没有素材库、没有剪辑软件、没有 GPU。</p>
+    <p class="lede">三个可游览的世界、一部粒子影片。画面来自手写 WebGL2 着色器与 numpy 数组运算，帧直接灌进 ffmpeg —— 没有素材库、没有剪辑软件、没有 GPU。<br>
+      天空鲸城露台那幅画，走近点一下就是另一片星海。</p>
     <div class="meta">
       <span class="tag">WebGL2 · 零依赖</span>
       <span class="tag">单个 HTML 离线可玩</span>
@@ -92,8 +93,19 @@
       <div class="go">进入 CELESTIA</div>
     </a>
 
-    <a class="card" href="https://github.com/lb290/code-animation/releases">
+    <a class="card" href="04-output/ASTRA.html">
       <div class="no">03</div>
+      <h3>星鲸环</h3>
+      <div class="en">ASTRA</div>
+      <p>「天空鲸城」的第二世界：露台上画架的那幅画就是门。近前点击，镜头坠入画中，落进一片有星云、环带巨行星与恒星的太空——
+        中央漂着直径 1.2 km 的环站「鲸环站」：环带、辐条、玻璃穹顶，玻璃穹顶里悬着一具黄铜鲸骨。它是天空鲸的摇篮。</p>
+      <div class="keys"><span><b>WASD</b>飞行</span><span><b>1–9</b>观景</span><span><b>空格</b>巡游</span><span><b>R</b>回到画中</span></div>
+      <p class="hintline">📱 平板 / 手机：横屏，左摇杆飞、右屏转视角；从 CIELO 露台画架进入，或直接点这里。</p>
+      <div class="go">进入 ASTRA</div>
+    </a>
+
+    <a class="card" href="https://github.com/lb290/code-animation/releases">
+      <div class="no">04</div>
       <h3>AETHER</h3>
       <div class="en">线性影片 · 1080p</div>
       <p>numpy 粒子泼溅 + HDR 光栅 + 电影级后处理链，24 s 成片，配乐由加法合成与 FFT 卷积混响写成。成片在 Releases。</p>
@@ -103,20 +115,12 @@
 
   <h2>天空鲸城 · 单场景入口</h2>
   <div class="levels">
-    <a href="04-output/CIELO.html">全景</a>
-    <a href="04-output/CIELO.cathedral.html">大教堂</a>
-    <a href="04-output/CIELO.opera.html">歌剧院</a>
-    <a href="04-output/CIELO.salon.html">宇宙音乐厅</a>
-    <a href="04-output/CIELO.rooms.html">宫殿套房</a>
-    <a href="04-output/CIELO.station.html">高架车站</a>
-    <a href="04-output/CIELO.train.html">银蓝列车</a>
-    <a href="04-output/CIELO.plaza.html">中央广场</a>
-    <a href="04-output/CIELO.orbital.html">玻璃星象台</a>
-    <a href="04-output/CIELO.lead.html">主教座堂</a>
-    <a href="04-output/CIELO.dev.html">开发版</a>
-    <a href="04-output/CELESTIA.dev.html">CELESTIA 开发版</a>
+    <a href="04-output/CIELO.html">天空鲸城 / 全景</a>
+    <a href="04-output/ASTRA.html">星鲸环 / 星海</a>
+    <a href="04-output/CELESTIA.html">灯祭 / 夜景</a>
   </div>
-  <p class="hintline">每个都是完整的单文件 HTML（0.1–1.4 MB，内联全部代码与着色器），下载下来断网也能打开。</p>
+  <p class="hintline">每个都是完整的单文件 HTML（0.1–1.1 MB，内联全部代码与着色器），下载下来断网也能打开。
+    仓库里只放**正式成品**；以前按施工员拆的十几个分文件（大教堂 / 歌剧院 / 车站…）与可读开发版都已收回 —— 它们都能用 `node build.mjs` 一条命令重建，正文入口只有上面这几个。</p>
 
   <footer>
     <a href="https://github.com/lb290/code-animation">源码仓库</a>

@@ -34,12 +34,19 @@ const dirty = porcelain.filter((l) => !l.startsWith('!!'));
 const outputs = [
   ['天空鲸城', '04-output/CIELO.html'],
   ['天空之城 · 灯祭', '04-output/CELESTIA.html'],
+  // Round 15：第二个可游览世界（从露台画架进入）
+  ['星鲸环（画中世界）', '04-output/ASTRA.html'],
 ].map(([name, rel]) => ({ name, rel, size: sizeKB(rel) }));
 
 // ---- 体检项数（checkall.mjs 是单一来源）----------------------------------
-const checkall = readText('01-source/cielo/tools/checkall.mjs');
-const allMatch = checkall.match(/const all = \[([\s\S]*?)\];/);
-const checks = allMatch ? (allMatch[1].match(/"[a-z0-9-]+"/g) || []) : [];
+const countChecks = (rel) => {
+  const src = readText(rel);
+  const m = src.match(/const all = \[([\s\S]*?)\];/);
+  const q = m ? (m[1].match(/["'][a-z0-9-]+["']/g) || []) : [];
+  return q.map((s) => s.slice(1, -1));
+};
+const checks = countChecks('01-source/cielo/tools/checkall.mjs');
+const astraChecks = countChecks('01-source/astra/tools/checkall.mjs');
 
 // ---- 内容规模（源码常量）------------------------------------------------
 const layout = readText('01-source/cielo/src/layout.js');
@@ -47,6 +54,10 @@ const viewsBlock = layout.match(/views:\s*\[([\s\S]*?)\n\s{2}\],/);
 const views = viewsBlock ? (viewsBlock[1].match(/\{ name:/g) || []).length : 0;
 const lore = readText('01-source/cielo/src/lore.js');
 const loreEntries = (lore.match(/^\s{4}id:\s*'/gm) || []).length;
+// ASTRA 的观景点：它是第二个世界，单独计数
+const astraLayout = readText('01-source/astra/src/layout.js');
+const astraViewsBlock = astraLayout.match(/views:\s*\[([\s\S]*?)\n\s{2}\],/);
+const astraViews = astraViewsBlock ? (astraViewsBlock[1].match(/\{ name:/g) || []).length : 0;
 
 // ---- 最近日记 -----------------------------------------------------------
 const dailyDir = path.join(root, '05-daily');
@@ -71,8 +82,8 @@ const block = [
   `| 分支 / HEAD（生成时） | \`${branch}\` @ \`${head}\` · ${subject} |`,
   `| 工作树 | ${dirtyLine} |`,
   outputs.map((o) => `| 成品 · ${o.name} | \`${o.rel}\` · ${o.size} |`).join('\n'),
-  `| 几何体检 | ${checks.length} 项（\`node tools/checkall.mjs\`） |`,
-  `| 内容规模 | 观景点 ${views} · 抄本 ${loreEntries} 页 |`,
+  `| 几何体检 | CIELO ${checks.length} 项 · ASTRA ${astraChecks.length} 项 |`,
+  `| 内容规模 | 观景点 天空鲸城 ${views} · 星鲸环 ${astraViews} ；抄本 ${loreEntries} 页 |`,
   `| 最近日记 | \`${lastDaily}\` |`,
   '<!-- AUTO:END -->',
 ].join('\n');
@@ -92,5 +103,5 @@ console.log('\n===== 项目现状 =====');
 console.log(`分支 ${branch} @ ${head} — ${subject}`);
 console.log(`工作树: ${dirtyLine}`);
 for (const o of outputs) console.log(`成品 ${o.rel}: ${o.size}`);
-console.log(`体检: ${checks.length} 项 | 观景点: ${views} | 抄本: ${loreEntries} 页 | 最近日记: ${lastDaily}`);
+console.log(`体检: CIELO ${checks.length} 项 / ASTRA ${astraChecks.length} 项 | 观景点: CIELO ${views} / ASTRA ${astraViews} | 抄本: ${loreEntries} 页 | 最近日记: ${lastDaily}`);
 if (!write) console.log('\n(只读模式；加 --write 会把上面这块写进 STATUS.md)');

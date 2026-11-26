@@ -5,17 +5,27 @@
 
 两个方向的产出：
 1. **线性影片**（AETHER，下方）——numpy 粒子 + HDR 光栅 + ffmpeg。
-2. **可游览场景**（天空鲸城 · 天空之城）——手写 WebGL2 的实时 3D 世界，浏览器里自由飞行。
+2. **可游览世界**（天空鲸城 · 天空之城 · 星鲸环）——手写 WebGL2 的实时 3D 世界，浏览器里自由飞行。
+
+> 第十五轮（2026-11-26）新增**第二个可游览世界「星鲸环 ASTRA」**：它是天空鲸城的**画中世界** ——
+> 走到露台那只画架前、点击画布，镜头会坠入画里，落进一片有星云、环带巨行星与恒星的太空，
+> 中央是直径 1.2 km 的巨型环站「鲸环站」。两个世界各自一个单文件成品，共用引擎、不共用一个 HTML。
 
 ## 在线体验（GitHub Pages）
 
 | 作品 | 直接打开 | 键盘 |
 |---|---|---|
-| **天空鲸城** CIELO | <https://lb290.github.io/code-animation/04-output/CIELO.html> | 空格 巡游 · 1–9 观景 · N 昼夜 · F 烟花 · H 帮助 |
+| **天空鲸城** CIELO | <https://lb290.github.io/code-animation/04-output/CIELO.html> | 空格 巡游 · 1–9 观景 · N 昼夜 · F 烟花 · R 回露台 · H 帮助 |
+| **星鲸环** ASTRA（画中世界） | <https://lb290.github.io/code-animation/04-output/ASTRA.html> | WASD 飞行 · 1–9 观景 · 空格 巡游 · R 回到画中 · H 帮助 |
 | **天空之城 · 灯祭** CELESTIA | <https://lb290.github.io/code-animation/04-output/CELESTIA.html> | 空格 巡游 · 1–7 观景 · T 时刻 · H 帮助 |
 | 首页（全部单场景入口） | <https://lb290.github.io/code-animation/> | — |
 
-都是**单个 HTML 文件**（内联全部 JS 与着色器，0.1–1.4 MB），下载后断网也能双击打开。
+从 CIELO 进 ASTRA 的正式路径是游戏里的一条动线：**飞到露台、走到画架前**（画架在露台西侧、少女旁边），
+靠近并看向画布会出现「走近画中世界 · 点击画布 / 回车」，点一下就**坠入画中**（2.4 s 过渡）进入星鲸环；
+在 ASTRA 里按 `R` 或点左下「回到画中」，会带着 `?at=easel` 回到画架前，站着就能再进一次。
+也可以直接点上面的 ASTRA 链接（跳过画，直接落进星海）。
+
+都是**单个 HTML 文件**（内联全部 JS 与着色器，0.1–1.1 MB），下载后断网也能双击打开。
 成片与图集在 **[Releases](https://github.com/lb290/code-animation/releases)**：天空鲸城《天空巡礼》、AETHER 1080p。
 
 > 仓库只收**代码、笔记与单文件成品 HTML**（约 20 MB）。第三方参考仓库 `02-refs/`、渲染中间帧 `04-output/_*`、
@@ -72,7 +82,19 @@ CIELO 支持触屏：左半屏按住拖动 = 摇杆飞行，右半屏拖动 = �
     tools/            serve.mjs（静态服务器）· shot/batch/views/final-stills（CDP 截图）
                       studio.mjs（鱼灯单件取景）· probe.mjs（页面内取值）
                       bench.mjs（帧时间基准）· refreshrate.mjs（显示刷新率）· fish-check.mjs（鱼网格体检）
-  cielo/              天空鲸城（实时 WebGL2 场景，零依赖，同一套引擎思路、美术全重写）
+  astra/              星鲸环 · 画中世界（第十五轮：第二个可游览世界，共享 CIELO 的引擎、美术全重写）
+    src/engine.js      **引擎边界**：只读再导出 CIELO 的 geo/lib3d/math/gl/actor/fx/touch（两个世界共用）
+    src/main.js        主循环（第十三轮管线移植：三档/自适应分辨率/FXAA/bloom/输出锐化 + 到达闪光/自动落位）
+    src/glsl/space-sky.fs.glsl  太空天空：三瓣星云 + 银河带 + 三维格点星场 + 四芒亮星 + 环带巨行星 + 小卫星 + 恒星
+    src/layout.js      环站唯一锚点表（环半径 600 / 环带 92×74 / 穹顶 r132 / 10 个观景点）
+    src/station-ring.js    环带外壳 129,388 tri：96 扇区 / 12 肋拱 / 4,512 舷窗 / 真开口对接港 / 6 组花瓣帆
+    src/station-core.js    脊柱塔 + 6 辐条 + 24 肋玻璃穹顶 + 110×72 m 门洞 + 可飞行中庭（56 m 黄铜鲸骨）128,050 tri
+    src/station-core-plan.js  冻结契约：门洞 / 飞入射线 / 中庭空腔 / 鲸骨机位（检查脚本共读）
+    src/space-props.js     小行星/冰屑 69 块 · 3 头星座鲸（401 星点）· 3 艘货船 · 8 浮标 · 远景姊妹站 · 光尘 23,774 tri
+    tools/             checkall（4 项）· astra-check（世界体检）· station-ring/core / space-props-check（模块体检）·
+                       mobile-check（触屏+桌面回归）· views（10 观景点静帧）
+   cielo/              天空鲸城（实时 WebGL2 场景，零依赖，同一套引擎思路、美术全重写）
+    src/portal.js      **第十五轮：露台画架传送门**（近距+视线判定 / 提示 / 2.4 s 坠入过渡 / ?at=easel 归来落位）
     src/whale.js      780 m 浮空巨鲸（3× 放大）：喉褶/下颌/长胸鳍/带缺刻尾鳍/背鳍/喷气孔/藤壶
     src/whale-city.js 鲸背城市（哥特教堂 + 25 栋街区 + 城墙城门 + 喷泉广场 + 花园，约 3.9 万面）
     src/arch/city/landmark/rail/terrace/hero/life  地面城市与露台（同 CELESTIA 的模块化切分）
@@ -120,6 +142,7 @@ CIELO 支持触屏：左半屏按住拖动 = 摇杆飞行，右半屏拖动 = �
   building-spec.md          建筑施工规格（1 间 = 2 m 模数、构件表、色板 Y 值、面数预算、验收判据）
   perf-skycity-2026-11-20.md  主循环性能优化的测量报告与调参表
   cielo-round13-quality.md    CIELO 画质系统 v2：手机端根因实测 / 像素预算 / 自适应 / 指标前后对比
+  cielo-round15-astra-brief.md  第十五轮合同：第二世界「星鲸环」+ 画架传送门（含「文件是不是太大」实测与 ASTRA 引擎契约）
 
 04-output/            作品
   AETHER_1080p.mp4    母版：1920x1080 / 30fps / 24.000s / H.264 41.5Mbps / 119MB
@@ -128,7 +151,8 @@ CIELO 支持触屏：左半屏按住拖动 = 摇杆飞行，右半屏拖动 = �
   frames/             4 张 1080p 关键帧（04s 吸引子 / 11s 爆散 / 15s 纽结 / 21s 标题）
   stills/             调色与构图迭代过程中的静帧
   CELESTIA.html       天空之城 · 灯祭：单文件可游览场景（145.0 KB，离线可用，双击打开）
-  CIELO.html          天空鲸城：单文件可游览场景（734.4 KB，离线可用，双击打开）
+  CIELO.html          天空鲸城：单文件可游览场景（1,061.4 KB，离线可用，双击打开；露台画架可进画中世界）
+  ASTRA.html          星鲸环：单文件太空世界（190.6 KB，离线可用，双击打开；从 CIELO 画架或直接打开）
   cielo/              天空鲸城成品图：73 张静帧（65 观景点 + 顶视日夜 / 夜景 / 黄昏）+ 拼贴
                       00-before-after-rail.png（铁路改线对照：第7轮穿宫前 vs 第8轮绕宫后，环线描边）
                       _r7/ 第七轮 57 张静帧归档

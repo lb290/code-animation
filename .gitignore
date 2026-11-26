@@ -44,3 +44,8 @@ Thumbs.db
 desktop.ini
 .DS_Store
 *.log
+# ---- 构建产物：只入库"正式成品"（三个单文件）----
+# --as=NAME 的分施工员构建、--dev 的可读版都能一条命令重建，不入库（否则仓库里会堆一堆过期大文件）
+04-output/*.dev.html
+04-output/CIELO.*.html
+04-output/ASTRA.*.html
