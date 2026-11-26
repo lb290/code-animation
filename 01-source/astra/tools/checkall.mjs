@@ -4,7 +4,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import url from 'node:url';
 const here = path.dirname(url.fileURLToPath(import.meta.url));
-const all = ['station-ring-check', 'station-core-check', 'space-props-check', 'astra-check'];
+const all = ['station-ring-check', 'station-core-check', 'room-gallery-check', 'room-painter-check',
+  'room-tearoom-check', 'room-atelier-check', 'room-study-check', 'space-props-check', 'astra-check'];
 const onlyArg = process.argv.find((a) => a.startsWith('--only='));
 const only = onlyArg ? onlyArg.slice(7).split(',').filter(Boolean) : null;
 const names = all.filter((n) => (!only || only.includes(n)) && fs.existsSync(path.join(here, n + '.mjs')));

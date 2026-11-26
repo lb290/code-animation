@@ -50,6 +50,11 @@ void main(){
     a = pow(max(0.0, 1.0-d), 3.0);
   }
   float dist = length(uCamPos - vWorld);
+  // Round 16 · 近场淡出：镜头贴到 / 穿过 billboard 时把这张光斑淡掉。
+  // 判据是「角半径」size/dist：一旦它占掉大半屏（角半径 > ~0.6 rad），它就不是光斑
+  // 而是一层糊在镜头上的色雾（「光污染」），所以淡出；远处完全不受影响。
+  float ang = vA.x / max(dist, 1e-3);
+  float nearFade = 1.0 - smoothstep(0.22, 0.62, ang);
   float fog = 1.0 - exp(-pow(dist*uFogDensity, 1.18));
   if (uAdditive > 0.5) {
     // additive sprites must not tint the frame toward the fog colour; they just
@@ -58,5 +63,5 @@ void main(){
   } else {
     col = mix(col, uFogColor, clamp(fog*0.9, 0.0, uFogMax));
   }
-  oCol = vec4(col, a * vA.z * uAlphaMul);
+  oCol = vec4(col, a * vA.z * uAlphaMul * nearFade);
 }

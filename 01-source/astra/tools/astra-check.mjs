@@ -11,6 +11,12 @@ import { mulberry32 } from '../src/engine.js';
 import { buildStationRing } from '../src/station-ring.js';
 import { buildStationCore } from '../src/station-core.js';
 import { buildSpaceProps } from '../src/space-props.js';
+import { buildGalleryShell, galleryLights, galleryLanterns } from '../src/room-gallery.js';
+import { galleryFrame } from '../src/interiors-plan.js';
+import { buildPainterRoom } from '../src/room-painter.js';
+import { buildTearoomRoom } from '../src/room-tearoom.js';
+import { buildAtelierRoom } from '../src/room-atelier.js';
+import { buildStudyRoom } from '../src/room-study.js';
 import { L, ST } from '../src/layout.js';
 
 const FAIL = [];
@@ -20,7 +26,13 @@ const fmt = (n) => Math.round(n).toLocaleString();
 const MODULES = [
   { name: 'stationRing', fn: buildStationRing, min: 30000, max: 220000 },
   { name: 'stationCore', fn: buildStationCore, min: 40000, max: 200000 },
-  { name: 'spaceProps', fn: buildSpaceProps, min: 8000, max: 130000 },
+  // Round 16 · 悬灯画廊 + 四间可进入的室内（画廊壳 ~7k，每间 14k..42k 是房间作者的预算）
+  { name: 'roomGallery', fn: (b, ctx) => { b.push(galleryFrame()); buildGalleryShell(b, ctx); b.pop(); galleryLights(ctx); galleryLanterns(ctx); }, min: 5000, max: 80000 },
+  { name: 'roomPainter', fn: buildPainterRoom, min: 14000, max: 52000 },
+  { name: 'roomTearoom', fn: buildTearoomRoom, min: 14000, max: 52000 },
+  { name: 'roomAtelier', fn: buildAtelierRoom, min: 14000, max: 52000 },
+  { name: 'roomStudy', fn: buildStudyRoom, min: 14000, max: 52000 },
+  { name: 'spaceProps', fn: buildSpaceProps, min: 8000, max: 120000 },
 ];
 const WORLD_MAX = 900000;
 
@@ -96,7 +108,7 @@ for (const m of MODULES) {
 console.log('\n[世界]');
 ok(total.tris <= WORLD_MAX, '世界静态三角 ' + fmt(total.tris) + ' ≤ ' + fmt(WORLD_MAX) + '（软上限）');
 ok(Number.isFinite(ST.ringR) && ST.ringR === 600, '契约 ST.ringR=600（layout.js 单一事实源）');
-ok(L.views.length === 10, '观景点 ' + L.views.length + ' 个（URL ?view= 与截图计划引用）');
+ok(L.views.length === 20, '观景点 ' + L.views.length + ' 个（URL ?view= 与截图计划引用）');
 let badView = 0;
 for (const v of L.views) {
   const d = Math.hypot(v.pos[0], v.pos[1], v.pos[2]);

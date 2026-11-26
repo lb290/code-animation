@@ -54,10 +54,18 @@ const viewsBlock = layout.match(/views:\s*\[([\s\S]*?)\n\s{2}\],/);
 const views = viewsBlock ? (viewsBlock[1].match(/\{ name:/g) || []).length : 0;
 const lore = readText('01-source/cielo/src/lore.js');
 const loreEntries = (lore.match(/^\s{4}id:\s*'/gm) || []).length;
-// ASTRA 的观景点：它是第二个世界，单独计数
+// ASTRA 的观景点：它是第二个世界，单独计数。
+// Round 16 起观景点 = layout.js 的 BASE_VIEWS（0..9）+ interiors-plan.js 的 GAL_VIEWS（画廊 2 个）
+// + 每间房 2 个机位（ROOMS × 2）。三项都在源码常量里，读出来加起来即可。
 const astraLayout = readText('01-source/astra/src/layout.js');
-const astraViewsBlock = astraLayout.match(/views:\s*\[([\s\S]*?)\n\s{2}\],/);
-const astraViews = astraViewsBlock ? (astraViewsBlock[1].match(/\{ name:/g) || []).length : 0;
+const astraPlan = readText('01-source/astra/src/interiors-plan.js');
+const cnt = (src, re) => { const m = src.match(re); return m ? (m[1].match(/\{ name:/g) || []).length : 0; };
+let astraViews = cnt(astraLayout, /const BASE_VIEWS = \[([\s\S]*?)\n\];/);
+astraViews += cnt(astraPlan, /export const GAL_VIEWS = \[([\s\S]*?)\n\];/);
+{
+  const rooms = astraPlan.match(/export const ROOMS = \[([\s\S]*?)\n\];/);
+  astraViews += 2 * (rooms ? (rooms[1].match(/key: '/g) || []).length : 0);
+}
 
 // ---- 最近日记 -----------------------------------------------------------
 const dailyDir = path.join(root, '05-daily');

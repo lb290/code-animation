@@ -2,6 +2,8 @@
 // 内容模块只从这里读尺寸，不各写一份；改尺寸必须同步体检脚本。
 //
 // 世界坐标：y 向上，环带平面 = XZ，环站中心 = (0,0,0)。
+import { ROOMS, GAL_VIEWS, galleryViewWorld, roomViewWorld } from './interiors-plan.js';
+
 export const ST = {
   ringR: 600,          // 环带中心线半径
   ringW: 92,           // 环带径向厚度
@@ -26,17 +28,27 @@ export function ringPoint(angDeg, r = ST.ringR, y = 0) {
 }
 
 // 观景点（只追加；索引被 URL / 截图计划引用）
+// 0..9 是第十五轮的远景/环站/穹顶机位，10..19 是第十六轮的悬灯画廊与四间房。
+const BASE_VIEWS = [
+  { name: '画中初降', en: 'ARRIVAL', pos: [150, 235, 1720], look: [0, 55, 0], fov: 52 },
+  { name: '环站全景', en: 'THE RING', pos: [0, 330, 1230], look: [0, 40, 0], fov: 56 },
+  { name: '环带立面', en: 'HABITAT BAND', pos: [760, 20, 240], look: [420, 0, 90], fov: 58 },
+  { name: '对接港', en: 'THE DOCK', pos: [170, 60, -880], look: [0, -20, -650], fov: 60 },
+  { name: '穹顶外', en: 'THE DOME', pos: [0, 250, 560], look: [0, 138, 0], fov: 58 },
+  { name: '穹顶中庭', en: 'THE CATHEDRAL', pos: [0, 78, 96], look: [0, 116, 0], fov: 82 },
+  { name: '鲸骨祭坛', en: 'THE WHALE CRADLE', pos: [0, 120, 86], look: [0, 110, 0], fov: 66 },
+  { name: '脊柱塔顶', en: 'THE SPIRE', pos: [40, 560, 330], look: [0, 400, 0], fov: 58 },
+  { name: '环下仰望', en: 'UNDER THE RING', pos: [0, -430, 640], look: [0, 0, 0], fov: 64 },
+  { name: '星云远眺', en: 'THE NEBULA', pos: [-960, 250, 980], look: [0, 150, 0], fov: 50 },
+];
+
+const GALLERY_VIEWS = GAL_VIEWS.map((v) => galleryViewWorld(v));
+const ROOM_VIEWS = [];
+for (const R of ROOMS) {
+  ROOM_VIEWS.push(roomViewWorld(R, 'in'));
+  ROOM_VIEWS.push(roomViewWorld(R, 'wide'));
+}
+
 export const L = {
-  views: [
-    { name: '画中初降', en: 'ARRIVAL', pos: [150, 235, 1720], look: [0, 55, 0], fov: 52 },
-    { name: '环站全景', en: 'THE RING', pos: [0, 330, 1230], look: [0, 40, 0], fov: 56 },
-    { name: '环带立面', en: 'HABITAT BAND', pos: [760, 20, 240], look: [420, 0, 90], fov: 58 },
-    { name: '对接港', en: 'THE DOCK', pos: [170, 60, -880], look: [0, -20, -650], fov: 60 },
-    { name: '穹顶外', en: 'THE DOME', pos: [0, 250, 560], look: [0, 138, 0], fov: 58 },
-    { name: '穹顶中庭', en: 'THE CATHEDRAL', pos: [0, 78, 96], look: [0, 116, 0], fov: 82 },
-    { name: '鲸骨祭坛', en: 'THE WHALE CRADLE', pos: [0, 120, 86], look: [0, 110, 0], fov: 66 },
-    { name: '脊柱塔顶', en: 'THE SPIRE', pos: [40, 560, 330], look: [0, 400, 0], fov: 58 },
-    { name: '环下仰望', en: 'UNDER THE RING', pos: [0, -430, 640], look: [0, 0, 0], fov: 64 },
-    { name: '星云远眺', en: 'THE NEBULA', pos: [-960, 250, 980], look: [0, 150, 0], fov: 50 },
-  ],
+  views: [...BASE_VIEWS, ...GALLERY_VIEWS, ...ROOM_VIEWS],
 };

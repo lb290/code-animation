@@ -6,6 +6,7 @@ import { createGL, program, quad, makeRT, makeDepthRT, freeRT, drawMesh, setUnif
 import * as S from './shaders.js';
 import { m4, clamp, norm, add, scale as vs, TAU, len } from './engine.js';
 import { Camera, VIEWS } from './camera.js';
+import { ROOMS as ROOM_DEFS, roomToWorld, gpt } from './interiors-plan.js';
 import { buildWorld } from './world.js';
 import { LOOK, SKY, C } from './palette.js';
 import { rgb } from '../../cielo/src/geo.js';
@@ -96,7 +97,7 @@ const W = { outW: 1280, outH: 720, srcW: 1280, srcH: 720, scale: 1, cssW: 1280, 
 let scenePx = Q.px0;
 let outMul = 1;
 const GPU_TARGET = params.has('gputarget') ? Number(params.get('gputarget')) : 0;
-let rtScene = null, rtBloomA = null, rtBloomB = null, rtScene2 = null, rtLdr = null;
+let rtScene = null, rtBloomA = null, rtBloomB = null, rtScene2 = null, rtBloomC = null, rtLdr = null;
 const clampPx = (p) => Math.min(Q.pxMax, Math.max(Q.pxMin, p));
 
 function layout() {
@@ -121,12 +122,14 @@ function layout() {
   W.srcW = sw; W.srcH = sh; W.scale = sw / cw;
   if (canvas.width !== ow || canvas.height !== oh) { canvas.width = ow; canvas.height = oh; }
   if (changed) {
-    for (const rt of [rtScene, rtBloomA, rtBloomB, rtScene2, rtLdr]) if (rt) freeRT(gl, rt);
+    for (const rt of [rtScene, rtBloomA, rtBloomB, rtScene2, rtBloomC, rtLdr]) if (rt) freeRT(gl, rt);
     rtScene = makeRT(gl, sw, sh, { depth: true });
     const bw = Math.max(80, Math.floor(sw / 2)), bh = Math.max(50, Math.floor(sh / 2));
     rtBloomA = makeRT(gl, bw, bh, {});
     rtBloomB = makeRT(gl, bw, bh, {});
-    rtScene2 = makeRT(gl, Math.max(80, Math.floor(sw / 4)), Math.max(50, Math.floor(sh / 4)), {});
+    const qw = Math.max(80, Math.floor(sw / 4)), qh = Math.max(50, Math.floor(sh / 4));
+    rtScene2 = makeRT(gl, qw, qh, {});
+    rtBloomC = makeRT(gl, qw, qh, {});
     rtLdr = makeRT(gl, sw, sh, { internal: gl.RGBA8, type: gl.UNSIGNED_BYTE });
   }
 }
@@ -444,6 +447,10 @@ window.__astra = {
   reset: () => { cam.setView(0, true); },
   isTouch: TOUCH,
   backUrl: () => 'CIELO.html?at=easel',
+  // Round 16 调试：把房间 / 画廊局部坐标换成世界坐标（房间作者摆机位、查灯光时用）
+  roomWorld: (key, p) => { const r = ROOM_DEFS.find((x) => x.key === key); return r ? roomToWorld(r.cx, p) : null; },
+  galleryWorld: (p) => gpt(p[0], p[1], p[2]),
+  roomCx: Object.fromEntries(ROOM_DEFS.map((r) => [r.key, r.cx])),
   res: () => ({ outW: W.outW, outH: W.outH, srcW: W.srcW, srcH: W.srcH, outPx: W.outW * W.outH, scenePx: W.srcW * W.srcH, dpr: DPR, outMul }),
   ready: false,
   stats() {
@@ -608,21 +615,30 @@ function drawFrame(now) {
     gl.disable(gl.BLEND);
   }
 
-  // ---- 6. bloom ----------------------------------------------------------
+  // ---- 6. bloom（Round 16 修：旧写法 uTexel 是"整屏 UV 偏移"，±3.2 屏宽的采样在
+  // CLAMP_TO_EDGE 下会把屏幕边缘的亮像素抹满整屏 —— 环站亮面/巨行星一旦擦过画面边缘，
+  // 全屏就泛起一层金色/青色"光污染"，镜头一转又消失，正是用户说的"一闪一闪"。
+  // 现在每级的 texel 都是真实纹素，两级（半分辨率细节 + 四分之一分辨率柔光）叠加。）
   if (!OFF.has('bloom')) {
     gl.disable(gl.DEPTH_TEST);
     gl.disable(gl.BLEND);
     pass(P.bright, rtBloomA, { uTex: 0, uThreshold: LOOK.bloomThreshold, uKnee: 0.35 });
     gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, rtScene.tex);
     drawMesh(gl, quadMesh); draws++;
+    // 第一级：半分辨率 H/V（半径 ~3 纹素 ≈ 6 场景像素）
     for (let i = 0; i < 2; i++) {
-      pass(P.blur, rtBloomB, { uTex: 0, uDir: i === 0 ? [1, 0] : [0, 1], uTexel: 1 + i * 1.4 });
-      gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, rtBloomA.tex);
+      const src = rtBloomA;
+      pass(P.blur, rtBloomB, { uTex: 0, uDir: i === 0 ? [1, 0] : [0, 1], uTexel: 1.15 / src.w });
+      gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, src.tex);
       drawMesh(gl, quadMesh); draws++;
       const t = rtBloomA; rtBloomA = rtBloomB; rtBloomB = t;
     }
-    pass(P.blur, rtScene2, { uTex: 0, uDir: [1, 0], uTexel: 2.4 });
+    // 第二级：四分之一分辨率 H/V（半径再放大 4×，负责"柔光"而不是"糊屏"）
+    pass(P.blur, rtBloomC, { uTex: 0, uDir: [1, 0], uTexel: 1.45 / rtBloomC.w });
     gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, rtBloomA.tex);
+    drawMesh(gl, quadMesh); draws++;
+    pass(P.blur, rtScene2, { uTex: 0, uDir: [0, 1], uTexel: 1.45 / rtScene2.h });
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, rtBloomC.tex);
     drawMesh(gl, quadMesh); draws++;
   }
 

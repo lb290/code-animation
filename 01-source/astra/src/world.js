@@ -1,14 +1,23 @@
 // world.js — ASTRA 世界组装。
 // 与 CIELO 的 world.js 同构：每个内容模块一个 tag()，几何分块流式上传，模块失败不静默。
-// 顺序 = 空间关系：先环站外壳，再核心塔（含穹顶内景），最后太空道具。
+// 顺序 = 空间关系：先环站外壳，再核心塔（含穹顶内景），再环下的悬灯画廊与四间房，最后太空道具。
 import { B } from './engine.js';
 import { meshChunked } from '../../cielo/src/gl.js';
 import { buildStationRing } from './station-ring.js';
 import { buildStationCore } from './station-core.js';
+import { buildGalleryShell, galleryLights, galleryLanterns } from './room-gallery.js';
+import { galleryFrame } from './interiors-plan.js';
+import { buildPainterRoom } from './room-painter.js';
+import { buildTearoomRoom } from './room-tearoom.js';
+import { buildAtelierRoom } from './room-atelier.js';
+import { buildStudyRoom } from './room-study.js';
 import { buildSpaceProps } from './space-props.js';
 
 export function buildWorld(gl) {
-  const BATCH_TRI = Number(new URLSearchParams(location.search).get('batch') || 200000);
+  const qs = new URLSearchParams(location.search);
+  const BATCH_TRI = Number(qs.get('batch') || 200000);
+  // ?only=a,b —— 只构建列出的模块（房间作者单独调自己的房间时用；不写=全建）。
+  const ONLY = qs.get('only') ? new Set(qs.get('only').split(',').filter(Boolean)) : null;
   const meshes = [];
   const b = new B({ chunked: true });
   const flush = () => {
@@ -32,6 +41,7 @@ export function buildWorld(gl) {
   const OFF_MOD = new Set(((new URLSearchParams(location.search).get('nomod') || '')).split(',').filter(Boolean));
   const tag = (name, fn) => {
     if (OFF_MOD.has(name)) { ctx.triLog[name] = 0; return; }
+    if (ONLY && !ONLY.has(name)) { ctx.triLog[name] = 0; return; }
     const i0 = b.i.length / 3;
     try {
       fn();
@@ -45,6 +55,17 @@ export function buildWorld(gl) {
 
   tag('stationRing', () => buildStationRing(b, ctx));
   tag('stationCore', () => buildStationCore(b, ctx));
+  tag('roomGallery', () => {
+    b.push(galleryFrame());       // 画廊局部系 → 世界（环带下沿、方位 250°）
+    buildGalleryShell(b, ctx);
+    b.pop();
+    galleryLights(ctx);
+    galleryLanterns(ctx);
+  });
+  tag('roomPainter', () => buildPainterRoom(b, ctx));
+  tag('roomTearoom', () => buildTearoomRoom(b, ctx));
+  tag('roomAtelier', () => buildAtelierRoom(b, ctx));
+  tag('roomStudy', () => buildStudyRoom(b, ctx));
   tag('spaceProps', () => buildSpaceProps(b, ctx));
 
   flush();
