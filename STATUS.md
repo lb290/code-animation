@@ -4,12 +4,12 @@
 > 本页只写**现在**；每轮的历史在 [HANDOFF.md](HANDOFF.md)，每天的过程在 [05-daily/](05-daily/)。
 
 <!-- AUTO:START -->
-> 自动生成 · 2026-11-26 20:05 · 运行 `node tools/status.mjs --write` 刷新。下面每一行都是从仓库里读出来的，不靠人记。
+> 自动生成 · 2026-11-26 20:10 · 运行 `node tools/status.mjs --write` 刷新。下面每一行都是从仓库里读出来的，不靠人记。
 
 | 项 | 值 |
 |---|---|
-| 分支 / HEAD（生成时） | `main` @ `99f2cad` · fix(cielo): 观景点 83「塔顶观云」机位改到塔冠内部（塔冠檐口不再挡住画面） |
-| 工作树 | 6 个改动（4-output/CIELO.html、04-output/cielo-sw.js、HANDOFF.md、README.md、STATUS.md、05-daily/2026-11-26.md） |
+| 分支 / HEAD（生成时） | `main` @ `f89fce8` · chore(repo): 移除误提交的提交信息临时文件 |
+| 工作树 | 干净 |
 | 成品 · 天空鲸城 | `04-output/CIELO.html` · 1049.7 KB |
 | 成品 · 天空之城 · 灯祭 | `04-output/CELESTIA.html` · 145.0 KB |
 | 几何体检 | 31 项（`node tools/checkall.mjs`） |
