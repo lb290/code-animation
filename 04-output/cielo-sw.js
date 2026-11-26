@@ -2,7 +2,7 @@
 // 只缓存天空鲸城这一页（单文件 HTML + 图标 + manifest），装到主屏幕后断网也能打开。
 // 换版本时把 VERSION 加一：activate 会清掉旧缓存。
 // 每次发布记得改版本号：新 SW 会清掉旧缓存（v11.1 = 平板试用反馈修复版）
-const VERSION = 'cielo-v11.2-2026-11-24';
+const VERSION = 'cielo-v14.0-2026-11-26';   // Round 14：云井塔（运河上的水门塔）
 const CORE = [
   './CIELO.html',
   './cielo.webmanifest',

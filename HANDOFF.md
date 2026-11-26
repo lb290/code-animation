@@ -30,6 +30,12 @@
 - **体检 +1**：`tools/cloudwell-check.mjs`（三角预算 / 世界包围盒 / 8 条飞入射线 0 命中 / 5 个内部空腔 0 顶点 /
   真门洞（接近段 0 命中 + 长弦首撞 z<14.4）/ 云井通到 y≥105 / 8 点光 / 两次构建逐 float 确定性），已注册进
   `checkall`：**30 → 31 项，31/31 PASS**。
+- **线上发布（2026-11-26 晚补记）**：上一晚推送后 GitHub Pages 没有更新——`6caf700` 的 Pages 构建状态是
+  `errored`（Page build failed），`99f2cad` 的构建卡在 `building` 超过 20 小时，线上仍是第十三轮
+  旧文件（1,010,205 B）。用 `gh api -X POST repos/lb290/code-animation/pages/builds` 手动重建 → 23 s 后
+  `built`；核对线上 `04-output/CIELO.html` = **1,074,887 B**、构建戳 `2026-11-26 12:01 · 99f2cad`（UTC）。
+  同时把 PWA 缓存版本升到 `cielo-v14.0-2026-11-26`，新塔进离线包。**以后发布后要核对 Pages 状态**
+  （`gh api repos/lb290/code-animation/pages` 的 `status` 必须是 `built`，不能只看 push 输出）。
 
 ## 第十四轮 30 秒上手
 

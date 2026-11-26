@@ -4,17 +4,17 @@
 > 本页只写**现在**；每轮的历史在 [HANDOFF.md](HANDOFF.md)，每天的过程在 [05-daily/](05-daily/)。
 
 <!-- AUTO:START -->
-> 自动生成 · 2026-11-25 23:41 · 运行 `node tools/status.mjs --write` 刷新。下面每一行都是从仓库里读出来的，不靠人记。
+> 自动生成 · 2026-11-26 20:05 · 运行 `node tools/status.mjs --write` 刷新。下面每一行都是从仓库里读出来的，不靠人记。
 
 | 项 | 值 |
 |---|---|
-| 分支 / HEAD（生成时） | `main` @ `62fcc14` · docs(cielo): 修 STATUS 重复标点 + 加「画质零回归」硬约束；Round 14 开场词补全参考图路径 |
-| 工作树 | 31 个改动（1-source/cielo/src/city.js、01-source/cielo/src/layout.js、01-source/cielo/src/lore-scene.js、01-source/cielo/src/lore.js、01-source/cielo/src/routes.js、01-source/cielo/src/world.js …） |
+| 分支 / HEAD（生成时） | `main` @ `99f2cad` · fix(cielo): 观景点 83「塔顶观云」机位改到塔冠内部（塔冠檐口不再挡住画面） |
+| 工作树 | 6 个改动（4-output/CIELO.html、04-output/cielo-sw.js、HANDOFF.md、README.md、STATUS.md、05-daily/2026-11-26.md） |
 | 成品 · 天空鲸城 | `04-output/CIELO.html` · 1049.7 KB |
 | 成品 · 天空之城 · 灯祭 | `04-output/CELESTIA.html` · 145.0 KB |
 | 几何体检 | 31 项（`node tools/checkall.mjs`） |
 | 内容规模 | 观景点 84 · 抄本 32 页 |
-| 最近日记 | `05-daily/2026-11-25.md` |
+| 最近日记 | `05-daily/2026-11-26.md` |
 <!-- AUTO:END -->
 
 ## 0. 一句话
@@ -55,10 +55,16 @@
 | 7 | 新体检 `tools/cloudwell-check.mjs`（三角/包围盒/8 射线/5 空腔/真门洞/云井通透/8 点光/确定性），注册后 **31 项全 PASS** | ✅ |
 | 8 | 验收：checkall 31/31、mobile-check 全 PASS、mem-check 15 PASS/0 FAIL、旧机位像素回归（v74 逐像素相同；v0/v2/v41 差异只在新增塔） | ✅ |
 | 9 | 文档同步（合同 / HANDOFF / 日记 / STATUS / 产品方案 / 制作笔记） | ✅ |
+| 10 | **发布到 GitHub Pages + 手机验证**（2026-11-26）：`6caf700` 的 Pages 构建报 `errored`、`99f2cad` 的构建卡在 building 20 小时 → 手动 POST 重建成功；线上文件已核对 = 1,074,887 B / 构建戳 `99f2cad`。顺手把 PWA 缓存版本升到 v14（新塔进离线包） | ✅ |
 
 > **线上**：静态 **2,163,136 tri**（+114,407）/ 7 批上传；观景点 **84**、抄本 **32 页**；
 > `04-output/CIELO.html` **1,049.7 KB**；构建戳可在标题页与 `?diag` 核对。
 > `src/main.js`（画质系统）**本轮零改动**。
+>
+> **手机上访问（2026-11-26 晚已验证线上）**：直接开 <https://lb290.github.io/code-animation/04-output/CIELO.html>，
+> 触屏默认「精细」；想看新塔就在地址后加 `?view=82`（回廊仰望）或 `?view=80`（运河岸看全塔），
+> 也可从露台沿大道向南飞、正对塔门飞进中庭。曾「添加到主屏幕」的：下拉刷新一次即可（SW 导航网络优先，
+> 缓存版本已升到 v14）。**Pages 事故与修复见 §2 表格下方**。
 
 ## 3. 下一步（≤5 条，按优先级）
 
