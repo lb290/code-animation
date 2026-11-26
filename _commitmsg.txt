@@ -1,8 +1,0 @@
-docs(cielo): 发布收尾——修复 Pages、手机访问说明、构建戳对齐（云井塔 v14）
-
-- 排查：6caf700 的 Pages 构建 errored、99f2cad 的构建卡在 building 20h，线上仍是第十三轮旧文件；
-  手动 POST pages/builds 重建成功，线上已核对 1,074,887 B / 构建戳 99f2cad。
-- 重建 04-output/CIELO.html（HEAD=99f2cad，页面构建戳与 git 对齐）；cielo-sw.js 缓存版本升到 v14。
-- README：修正过期数字（2,163,136 tri / 1.05 MB / 触屏默认「精细」），新增「手机上直接看云井塔」（?view=80..83）。
-- STATUS/HANDOFF/05-daily/2026-11-26：记录线上验证与 Pages 故障修复。
-- 验收：node build.mjs + node tools/checkall.mjs → 31/31 PASS（本轮无几何改动）。
