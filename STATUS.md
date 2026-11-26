@@ -4,12 +4,12 @@
 > 本页只写**现在**；每轮的历史在 [HANDOFF.md](HANDOFF.md)，每天的过程在 [05-daily/](05-daily/)。
 
 <!-- AUTO:START -->
-> 自动生成 · 2026-11-27 01:35 · 运行 `node tools/status.mjs --write` 刷新。下面每一行都是从仓库里读出来的，不靠人记。
+> 自动生成 · 2026-11-27 01:42 · 运行 `node tools/status.mjs --write` 刷新。下面每一行都是从仓库里读出来的，不靠人记。
 
 | 项 | 值 |
 |---|---|
-| 分支 / HEAD（生成时） | `main` @ `056e539` · chore(tools): 刷新 STATUS 事实块（星鲸环已上线 / 三件成品） |
-| 工作树 | 30 个改动（1-source/astra/src/glsl/bill.fs.glsl、01-source/astra/src/glsl/bright.fs.glsl、01-source/astra/src/layout.js、01-source/astra/src/main.js、01-source/astra/src/world.js、01-source/astra/template.html …） |
+| 分支 / HEAD（生成时） | `main` @ `f99f05f` · feat(astra): 悬灯画廊——环带下四间可飞入的室内 + 修巡游「一闪一闪的光污染」 |
+| 工作树 | 干净 |
 | 成品 · 天空鲸城 | `04-output/CIELO.html` · 1061.4 KB |
 | 成品 · 天空之城 · 灯祭 | `04-output/CELESTIA.html` · 145.0 KB |
 | 成品 · 星鲸环（画中世界） | `04-output/ASTRA.html` · 377.4 KB |
